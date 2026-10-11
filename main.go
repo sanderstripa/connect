@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/core"
 	"github.com/SUDOKU-ASCII/sudoku/pkg/logx"
@@ -22,6 +23,15 @@ var bundledRuntime embed.FS
 
 //go:embed build/appicon.png
 var trayIcon []byte
+
+//go:embed build/tray/off-light.png
+var trayOffLight []byte
+
+//go:embed build/tray/off-dark.png
+var trayOffDark []byte
+
+//go:embed build/tray/on.png
+var trayOn []byte
 
 //go:embed build/tray/logo-monochrome.svg
 var trayTemplateIcon []byte
@@ -188,8 +198,36 @@ func main() {
 	if runtime.GOOS == "darwin" {
 		tray.SetTemplateIcon(trayTemplateIcon)
 	} else {
-		tray.SetIcon(trayIcon)
+		tray.SetIcon(trayOffLight)
+		tray.SetDarkModeIcon(trayOffDark)
 	}
+	go func() {
+		<-appService.ready
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+		wasConnected := false
+		for range ticker.C {
+			if quitting.Load() {
+				return
+			}
+			state := appService.GetState()
+			connected := state.Running && state.CoreRunning && state.TunRunning && state.RouteSetupError == ""
+			if connected == wasConnected {
+				continue
+			}
+			wasConnected = connected
+			application.InvokeAsync(func() {
+				if quitting.Load() {
+					return
+				}
+				if connected {
+					tray.SetIcon(trayOn).SetDarkModeIcon(trayOn).SetTooltip("Connect — подключено")
+				} else {
+					tray.SetIcon(trayOffLight).SetDarkModeIcon(trayOffDark).SetTooltip("Connect — отключено")
+				}
+			})
+		}
+	}()
 	var menuAnchor application.Point
 	var menuArea application.Rect
 	var anchored bool

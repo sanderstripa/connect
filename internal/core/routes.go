@@ -951,6 +951,9 @@ func windowsDefaultInterfaceIndex() (int, error) {
 }
 
 func windowsPreferredDefaultRouteIPv4(excludeIf int) (string, int, error) {
+	if gateway, index, err := nativeWindowsDefaultRoute(excludeIf); err == nil {
+		return gateway, index, nil
+	}
 	script := strings.Join([]string{
 		fmt.Sprintf("$exclude = %d", excludeIf),
 		"$routes = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue",
@@ -984,6 +987,16 @@ func windowsPreferredDefaultRouteIPv4(excludeIf int) (string, int, error) {
 }
 
 func windowsInterfaceIndex(name string) (int, error) {
+	if runtime.GOOS == "windows" {
+		adapter, err := net.InterfaceByName(strings.TrimSpace(name))
+		if err != nil {
+			return 0, err
+		}
+		if adapter.Flags&net.FlagUp == 0 {
+			return 0, errors.New("adapter not up")
+		}
+		return adapter.Index, nil
+	}
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return 0, errors.New("empty interface name")
@@ -1070,6 +1083,26 @@ func windowsResolveTunInterfaceIndex(ctx context.Context, tun TunSettings, timeo
 }
 
 func windowsInterfaceIndexByIPv4(ipv4 string) (int, string, error) {
+	if runtime.GOOS == "windows" {
+		adapters, err := net.Interfaces()
+		if err != nil {
+			return 0, "", err
+		}
+		wanted := net.ParseIP(strings.TrimSpace(ipv4))
+		for _, adapter := range adapters {
+			if adapter.Flags&net.FlagUp == 0 {
+				continue
+			}
+			addresses, _ := adapter.Addrs()
+			for _, address := range addresses {
+				ip, _, err := net.ParseCIDR(address.String())
+				if err == nil && wanted != nil && wanted.Equal(ip) {
+					return adapter.Index, adapter.Name, nil
+				}
+			}
+		}
+		return 0, "", errors.New("tun interface by ipv4 not found")
+	}
 	ipv4 = strings.TrimSpace(ipv4)
 	if ipv4 == "" {
 		return 0, "", errors.New("empty tun ipv4")

@@ -514,7 +514,7 @@ func (b *Backend) tick() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	needTunRecover := false
-	b.state.CoreRunning = b.coreProc.IsRunning()
+	b.state.CoreRunning = b.coreProc.IsRunning() && !b.coreSwitching
 	b.state.TunRunning = b.tunRunningLocked()
 	b.state.ReverseRunning = b.revProc.IsRunning()
 	b.state.Running = b.state.CoreRunning

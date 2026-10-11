@@ -59,7 +59,7 @@ const active = computed(() =>
 );
 const protocols = ["sudoku", "xray", "mist"];
 const selectedProtocol = computed(() => active.value?.protocol || "sudoku");
-async function chooseProtocol(protocol: string) { const node=config.value?.nodes.find(n=>(n.protocol || "sudoku")===protocol); if(node) await select(node.id); else { importing.value=true; link.value=""; name.value=""; } }
+async function chooseProtocol(protocol: string) { if(active.value && selectedProtocol.value===protocol) return; const node=config.value?.nodes.find(n=>(n.protocol || "sudoku")===protocol); if(node) await select(node.id); else { importing.value=true; link.value=""; name.value=""; } }
 const running = computed(() => !!state.value?.running);
 const healthy = computed(
   () =>

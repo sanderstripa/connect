@@ -2,12 +2,12 @@ version: '3'
 
 info:
   companyName: "sanderstripa"
-  productName: "Sudoku VPN"
-  productIdentifier: "com.sanderstripa.sudoku.vpn"
-  description: "A Wails desktop client for Sudoku proxy controls"
+  productName: "Connect"
+  productIdentifier: "com.sanderstripa.connect"
+  description: "Connect VPN for Windows"
   copyright: "(c) 2026, SUDOKU-ASCII"
-  comments: "Sudoku desktop"
-  version: "0.2.1"
+  comments: "Connect"
+  version: "0.1.1"
 
 dev_mode:
   root_path: .

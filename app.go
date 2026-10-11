@@ -20,6 +20,7 @@ type App struct {
 	backend      *core.Backend
 	remote       *networkClient
 	shutdownOnce sync.Once
+	ready        chan struct{}
 
 	runtimeFS   fs.FS
 	runtimeRoot string
@@ -28,17 +29,19 @@ type App struct {
 // NewApp creates a new App application struct
 func NewApp(runtimeFS fs.FS, runtimeRoot string) *App {
 	if needsNetworkHelper() {
-		return &App{runtimeFS: runtimeFS, runtimeRoot: runtimeRoot}
+		return &App{runtimeFS: runtimeFS, runtimeRoot: runtimeRoot, ready: make(chan struct{})}
 	}
 	backend, _ := core.NewBackendWithRuntimeFS(runtimeFS, runtimeRoot)
 	return &App{
 		backend:     backend,
+		ready:       make(chan struct{}),
 		runtimeFS:   runtimeFS,
 		runtimeRoot: runtimeRoot,
 	}
 }
 
 func (a *App) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	defer close(a.ready)
 	if needsNetworkHelper() {
 		var err error
 		a.remote, err = startNetworkHelper()

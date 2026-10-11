@@ -87,6 +87,13 @@ for (const uninstall of [false, true]) {
     await expect(page.locator("#title")).toHaveText(
       uninstall ? "Connect удалён" : "Connect установлен",
     );
+    if (!uninstall) {
+      await expect.poll(() => calls.filter(c => c === "/api/chrome").length).toBe(1);
+      await expect(page.locator("#chromeNote")).toContainText("Ctrl+V");
+      await page.locator("#chromeSetup").click();
+      await expect.poll(() => calls.filter(c => c === "/api/chrome").length).toBe(2);
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    }
     await page.locator("#primary").click();
     await expect.poll(() => calls).toContain("/api/close");
     if (!uninstall) expect(calls).toContain("/api/open");

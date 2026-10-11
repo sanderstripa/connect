@@ -13,6 +13,13 @@ import (
 // CheckProxyURL verifies actual traffic through the running core, never a
 // direct fallback. The optional URL supports isolated integration tests.
 func (b *Backend) CheckProxyURL(target string) error {
+	b.mu.RLock()
+	port := b.runningLocalPort
+	b.mu.RUnlock()
+	return checkProxyURL(context.Background(), target, port, 12*time.Second)
+}
+
+func checkProxyURL(parent context.Context, target string, port int, timeout time.Duration) error {
 	if target == "" {
 		target = "https://www.gstatic.com/generate_204"
 	}
@@ -20,9 +27,6 @@ func (b *Backend) CheckProxyURL(target string) error {
 	if e != nil || u.User != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return fmt.Errorf("некорректный адрес проверки")
 	}
-	b.mu.RLock()
-	port := b.runningLocalPort
-	b.mu.RUnlock()
 	if port <= 0 {
 		return fmt.Errorf("ядро не запущено")
 	}
@@ -36,8 +40,8 @@ func (b *Backend) CheckProxyURL(target string) error {
 	}
 	tr := &http.Transport{DialContext: contextDialer.DialContext, TLSHandshakeTimeout: 8 * time.Second, ResponseHeaderTimeout: 8 * time.Second}
 	defer tr.CloseIdleConnections()
-	client := &http.Client{Transport: tr, Timeout: 12 * time.Second}
-	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	client := &http.Client{Transport: tr, Timeout: timeout}
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	req, e := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if e != nil {

@@ -9,15 +9,38 @@ import (
 )
 
 func (b *Backend) SwitchNode(nodeID string) error {
-	if err := b.SetActiveNode(nodeID); err != nil {
-		return err
-	}
+	b.switchMu.Lock()
+	defer b.switchMu.Unlock()
 	b.mu.RLock()
+	previousID := b.cfg.ActiveNodeID
+	previous := b.findNode(previousID)
+	var previousNode NodeConfig
+	if previous != nil {
+		previousNode = *previous
+	}
 	running := b.state.Running
 	withTun := b.state.TunRunning
 	b.mu.RUnlock()
+	if previousID == nodeID {
+		return nil
+	}
+	if err := b.SetActiveNode(nodeID); err != nil {
+		return err
+	}
 	if running {
-		return b.RestartProxy(StartRequest{WithTun: withTun})
+		if handled, err := b.switchCoreKeepingTun(previousNode); handled {
+			return err
+		}
+		if err := b.RestartProxy(StartRequest{WithTun: withTun}); err != nil {
+			_ = b.SetActiveNode(previousID)
+			if stopErr := b.StopProxy(); stopErr != nil {
+				return fmt.Errorf("переключение: %w; восстановление маршрутов: %v", err, stopErr)
+			}
+			if restoreErr := b.StartProxy(StartRequest{WithTun: withTun}); restoreErr != nil {
+				return fmt.Errorf("переключение: %w; восстановление соединения: %v", err, restoreErr)
+			}
+			return fmt.Errorf("переключение: %w; предыдущее соединение восстановлено", err)
+		}
 	}
 	return nil
 }

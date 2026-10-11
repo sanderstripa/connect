@@ -33,7 +33,7 @@ var chromeFiles embed.FS
 //go:embed web/assets/icon.png
 var icon []byte
 
-const version = "0.1.0"
+const version = "0.1.1"
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
 
 type setup struct {
@@ -195,6 +195,12 @@ func (s *setup) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// instead of inheriting the installer's administrator token.
 		cmd := exec.Command("explorer.exe", filepath.Join(installDir(), "Connect.exe"))
 		err = cmd.Start()
+	case "/api/chrome":
+		if s.uninstall {
+			err = fmt.Errorf("invalid mode")
+		} else {
+			err = prepareChrome(installDir())
+		}
 	case "/api/close":
 		go s.app.Quit()
 	default:
@@ -208,6 +214,18 @@ func (s *setup) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+// Match the supplied installer's guided final step without modifying Chrome's
+// authenticated profile files or imposing enterprise policies on a personal browser.
+func prepareChrome(dir string) error {
+	if _, err := os.Stat(filepath.Join(dir, "ChromeExtension", "manifest.json")); err != nil {
+		return err
+	}
+	script := "$ErrorActionPreference='Stop'; Set-Clipboard -Value " + quote(filepath.Join(dir, "ChromeExtension")) + "; " +
+		"$chrome=@((Join-Path $env:ProgramFiles 'Google\\Chrome\\Application\\chrome.exe'),(Join-Path ${env:ProgramFiles(x86)} 'Google\\Chrome\\Application\\chrome.exe'),(Join-Path $env:LOCALAPPDATA 'Google\\Chrome\\Application\\chrome.exe')) | Where-Object {Test-Path -LiteralPath $_} | Select-Object -First 1; " +
+		"if($chrome){(New-Object -ComObject Shell.Application).ShellExecute($chrome,'chrome://extensions/','','open',1)}"
+	return powershell(script)
 }
 func main() {
 	tokenBytes := make([]byte, 32)

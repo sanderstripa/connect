@@ -16,14 +16,17 @@ import (
 )
 
 type Backend struct {
-	browserOnly  bool
-	mu           sync.RWMutex
-	opMu         sync.Mutex
-	startMu      sync.Mutex
-	startOpID    uint64
-	startCancel  context.CancelFunc
-	startDone    chan struct{}
-	shutdownOnce sync.Once
+	browserOnly     bool
+	mu              sync.RWMutex
+	opMu            sync.Mutex
+	switchMu        sync.Mutex
+	coreSwitching   bool
+	preflightTarget string // Optional local target for isolated engine integration tests.
+	startMu         sync.Mutex
+	startOpID       uint64
+	startCancel     context.CancelFunc
+	startDone       chan struct{}
+	shutdownOnce    sync.Once
 
 	eventMu             sync.RWMutex
 	eventEmitter        func(name string, payload any)
@@ -948,7 +951,11 @@ func (b *Backend) preflightTunUpstream(ctx context.Context, localPort int, routi
 	if err := waitForTCPReady(preflightCtx, socksAddr, 2*time.Second); err != nil {
 		return fmt.Errorf("TUN preflight failed before changing system routes: core SOCKS proxy is not ready: %w", err)
 	}
-	if err := healthCheckSOCKS5Connect(preflightCtx, socksAddr, "1.1.1.1:443", 3*time.Second); err != nil {
+	target := b.preflightTarget
+	if target == "" {
+		target = "1.1.1.1:443"
+	}
+	if err := healthCheckSOCKS5Connect(preflightCtx, socksAddr, target, 3*time.Second); err != nil {
 		if b.hasUpstreamHTTP403Since(attemptedAt) {
 			return errors.New("TUN preflight failed before changing system routes: upstream returned HTTP 403; check the node key and HTTPMask host/path, and ensure the server uses a compatible sudoku version")
 		}

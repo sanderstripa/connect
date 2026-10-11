@@ -8,6 +8,7 @@ function Native([string]$Executable,[string[]]$Arguments) {
 Push-Location $appRoot
 try {
  & ./scripts/build-icon.ps1
+ & ./scripts/build-tray.ps1
  if (-not $SkipCore) { & ./scripts/core.ps1; & ./scripts/engines.ps1 }
  Push-Location frontend
  try { Native 'npm.cmd' @('ci'); Native 'npm.cmd' @('run','build') } finally { Pop-Location }

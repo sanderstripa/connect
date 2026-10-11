@@ -63,11 +63,9 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 		b.setStartErrorLocked(err)
 		return proxyStartPlan{}, err
 	}
-	if protocolOf(plan.node) != "sudoku" {
-		runtimeConfig.Tun.BlockQUIC = false
-		runtimeConfig.Tun.MapDNSAddress = "1.1.1.1"
-		runtimeConfig.Tun.MapDNSPort = 53
-	}
+	// HEV owns MapDNS for every SOCKS core. Keep its virtual resolver stable
+	// across protocols; a global UDP/443 firewall rule also blocks transports.
+	runtimeConfig.Tun.BlockQUIC = false
 	if protocolOf(plan.node) == "mist" && runtimeConfig.Routing.ProxyMode != "global" {
 		return proxyStartPlan{}, fmt.Errorf("Mist: выберите режим Весь трафик")
 	}
