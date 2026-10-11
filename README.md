@@ -13,6 +13,7 @@ Connect brings **Sudoku, Xray and experimental Mist** into a clean interface ins
 - Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
 - Import Sudoku links/subscriptions, VLESS, VMess, Trojan or a Mist client configuration.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
+- Switch between Russian and English in the settings title bar; your language is saved immediately.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
 
 Install **Connect-Setup.exe**, add your own connection, then select its protocol and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.

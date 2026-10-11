@@ -60,6 +60,88 @@ const active = computed(() =>
 const protocols = ["sudoku", "xray", "mist"];
 const selectedProtocol = computed(() => active.value?.protocol || "sudoku");
 async function chooseProtocol(protocol: string) { if(active.value && selectedProtocol.value===protocol) return; const node=config.value?.nodes.find(n=>(n.protocol || "sudoku")===protocol); if(node) await select(node.id); else { importing.value=true; link.value=""; name.value=""; } }
+const language = computed(() => config.value?.ui.language === 'en' ? 'en' : 'ru');
+const english: Record<string,string> = {
+  "Свернуть": "Minimize",
+  "Скрыть в трей": "Hide to tray",
+  "Загрузка…": "Loading…",
+  "Настройки": "Settings",
+  "Протокол": "Protocol",
+  "Пожалуйста, подождите": "Please wait",
+  "Соединение активно": "Connected",
+  "Проверка соединения": "Checking connection",
+  "Вы отключены": "Disconnected",
+  "Отключить VPN": "Disconnect VPN",
+  "Подключить VPN": "Connect VPN",
+  "Добавьте сервер, чтобы начать": "Add a server to get started",
+  "Добавить соединение": "Add connection",
+  "/с": "/s",
+  "VPN · всё устройство": "VPN · whole device",
+  "С исключениями": "With exclusions",
+  "Весь трафик": "All traffic",
+  "Назад": "Back",
+  "НАСТРОЙКИ": "SETTINGS",
+  "СОЕДИНЕНИЯ": "CONNECTIONS",
+  "ЖУРНАЛ": "LOGS",
+  "ВНЕШНИЙ ВИД": "APPEARANCE",
+  "Система": "System",
+  "Светлая": "Light",
+  "Тёмная": "Dark",
+  "ПОДКЛЮЧЕНИЕ": "CONNECTION",
+  "Запускать вместе с Windows": "Launch with Windows",
+  "Подключаться при запуске": "Connect on startup",
+  "РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ": "SPLIT TUNNELING",
+  "Для Mist выберите Весь трафик.": "For Mist, select All traffic.",
+  "Режим": "Mode",
+  "Домены исключений": "Excluded domains",
+  "Один домен на строку. Включая поддомены.": "One domain per line. Includes subdomains.",
+  "Настройки подключения применятся с переподключением.": "Connection settings will reconnect the VPN.",
+  "Сохранить настройки": "Save settings",
+  "Журнал подключения": "Connection log",
+  "Обновить подписку": "Refresh subscription",
+  "Удалить сервер": "Delete server",
+  "Удалить соединение?": "Delete connection?",
+  "Отмена": "Cancel",
+  "Удалить": "Delete",
+  "Здесь появятся ваши соединения": "Your connections will appear here",
+  "Последние события VPN-службы. Журнал может содержать адреса\n            серверов.": "Recent VPN service events. Logs may include server addresses.",
+  "Событий пока нет": "No events yet",
+  "Скопировать журнал": "Copy log",
+  "НОВОЕ СОЕДИНЕНИЕ": "NEW CONNECTION",
+  "Закрыть": "Close",
+  "Вставьте ссылку сервера или клиентскую конфигурацию Mist.": "Paste a server link or Mist client configuration.",
+  "Ссылка соединения": "Connection link",
+  "Название": "Name",
+  "· необязательно": "· optional",
+  "Мой сервер": "My server",
+  "sudoku://, vless://, vmess://, trojan:// или JSON Mist": "sudoku://, vless://, vmess://, trojan:// or Mist JSON",
+  "Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON": "Sudoku links and subscriptions · Xray with xhttp · Mist JSON",
+  "Добавление…": "Adding…",
+  "Сервер добавлен": "Server added",
+  "Подписка обновлена": "Subscription updated",
+  "Настройки сохранены": "Settings saved",
+  "Журнал скопирован": "Log copied",
+  "Нет связи с VPN-службой": "VPN service unavailable",
+  "Укажите домены без https://, путей и пробелов": "Enter domains without https://, paths or spaces",
+  "Некорректный домен: ": "Invalid domain: ",
+  "Не удалось загрузить приложение: ": "Could not load the app: ",
+  "Последние события VPN-службы. Журнал может содержать адреса серверов.": "Recent VPN service events. Logs may include server addresses.",
+  "Б": "B",
+  "КБ": "KB",
+  "МБ": "MB"
+};
+const tr = (value: string) => language.value === 'en' ? (english[value] || value) : value;
+async function toggleLanguage() {
+  await action(async () => {
+    if (!config.value) return;
+    const c = JSON.parse(JSON.stringify(config.value)) as AppConfig;
+    c.ui.language = language.value === 'ru' ? 'en' : 'ru';
+    await api.saveConfig(c);
+    config.value = c;
+    if (draft.value) draft.value.ui.language = c.ui.language;
+  });
+}
+watch(language, value => { document.documentElement.lang = value; }, { immediate: true });
 const running = computed(() => !!state.value?.running);
 const healthy = computed(
   () =>
@@ -186,7 +268,7 @@ async function saveSettings() {
           .filter(Boolean)
           .map((s) => {
             if (/[\s/:,@*]/.test(s))
-              throw new Error("Укажите домены без https://, путей и пробелов");
+              throw new Error(tr("Укажите домены без https://, путей и пробелов"));
             const host = new URL("https://" + s).hostname;
             if (
               !host.includes(".") ||
@@ -195,7 +277,7 @@ async function saveSettings() {
                 .split(".")
                 .every((p) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(p))
             )
-              throw new Error("Некорректный домен: " + s);
+              throw new Error(tr("Некорректный домен: ") + s);
             return host;
           }),
       ),
@@ -238,10 +320,10 @@ async function saveSettings() {
 }
 function bytes(n = 0) {
   return n < 1024
-    ? `${Math.round(n)} Б`
+    ? `${Math.round(n)} ${tr("Б")}`
     : n < 1048576
-      ? `${(n / 1024).toFixed(1)} КБ`
-      : `${(n / 1048576).toFixed(1)} МБ`;
+      ? `${(n / 1024).toFixed(1)} ${tr("КБ")}`
+      : `${(n / 1048576).toFixed(1)} ${tr("МБ")}`;
 }
 async function copyLogs() {
   await action(async () => {
@@ -259,7 +341,7 @@ onMounted(async () => {
     theme.value = config.value?.ui.theme || "auto";
     applyTheme();
   } catch (e) {
-    error.value = "Не удалось загрузить приложение: " + String(e);
+    error.value = tr("Не удалось загрузить приложение: ") + String(e);
   } finally {
     loading.value = false;
   }
@@ -286,48 +368,49 @@ onBeforeUnmount(() => {
     <header class="titlebar">
       <span class="wordmark">CONNECT<span class="wordmark-dot">.</span></span>
       <div class="window-actions">
-        <button aria-label="Свернуть" @click="Window.Minimise()">
+        <button v-if="page === 'settings'" class="language-button" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'" :disabled="busy" @click="toggleLanguage">{{ language.toUpperCase() }}</button>
+        <button :aria-label="tr('Свернуть')" @click="Window.Minimise()">
           <Minus :size="15" /></button
-        ><button aria-label="Скрыть в трей" @click="Window.Hide()">
+        ><button :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
           <X :size="15" />
         </button>
       </div>
     </header>
-    <div v-if="loading" class="loading">Загрузка…</div>
+    <div v-if="loading" class="loading"> {{ tr("Загрузка…") }} </div>
     <main v-else :class="'page-' + page">
       <template v-if="page === 'home'">
         <div class="eyebrow-row">
           <button
             class="icon-button"
-            aria-label="Настройки"
+            :aria-label="tr('Настройки')"
             @click="openSettings"
           >
             <Settings2 :size="19" />
           </button>
         </div>
-        <nav class="protocol-picker" aria-label="Протокол"><button v-for="p in protocols" :key="p" :class="{selected: selectedProtocol===p}" :disabled="busy" @click="chooseProtocol(p)">{{ p==='xray' ? 'Xray' : p==='mist' ? 'Mist' : 'Sudoku' }}</button></nav>
+        <nav class="protocol-picker" :aria-label="tr('Протокол')"><button v-for="p in protocols" :key="p" :class="{selected: selectedProtocol===p}" :disabled="busy" @click="chooseProtocol(p)">{{ p==='xray' ? 'Xray' : p==='mist' ? 'Mist' : 'Sudoku' }}</button></nav>
         <section class="connection">
           <div class="status">
             <span class="status-dot" :class="{ online: healthy }" />{{
               busy
-                ? "Пожалуйста, подождите"
+                ? tr("Пожалуйста, подождите")
                 : healthy
-                  ? "Соединение активно"
+                  ? tr("Соединение активно")
                   : running
-                    ? "Проверка соединения"
-                    : "Вы отключены"
+                    ? tr("Проверка соединения")
+                    : tr("Вы отключены")
             }}
           </div>
           <button
             class="power-button"
             :class="{ connected: healthy, working: busy }"
             :disabled="busy || (!active && !running)"
-            :aria-label="running ? 'Отключить VPN' : 'Подключить VPN'"
+            :aria-label="running ? tr('Отключить VPN') : tr('Подключить VPN')"
             @click="toggle"
           >
             <Power :size="43" :stroke-width="1.2" />
           </button>
-          <p v-if="!active" class="muted">Добавьте сервер, чтобы начать</p>
+          <p v-if="!active" class="muted"> {{ tr("Добавьте сервер, чтобы начать") }} </p>
         </section>
         <button v-if="active" class="server-card" @click="page = 'servers'">
           <ShieldCheck :size="23" :stroke-width="1.3" /><span
@@ -338,56 +421,56 @@ onBeforeUnmount(() => {
         </button>
         <button v-else class="server-card" @click="importing = true">
           <Plus :size="22" /><span class="server-details"
-            ><strong>Добавить соединение</strong
+            ><strong> {{ tr("Добавить соединение") }} </strong
             ><small>Sudoku · Xray · Mist</small></span
           ><ChevronRight :size="17" />
         </button>
         <div class="traffic">
           <div>
             <ArrowDown :size="15" /><span
-              >{{ bytes(sample?.rxBps) }}<small>/с</small></span
+              >{{ bytes(sample?.rxBps) }}<small> {{ tr("/с") }} </small></span
             >
           </div>
           <span class="traffic-divider" />
           <div>
             <ArrowUp :size="15" /><span
-              >{{ bytes(sample?.txBps) }}<small>/с</small></span
+              >{{ bytes(sample?.txBps) }}<small> {{ tr("/с") }} </small></span
             >
           </div>
         </div>
         <div class="mode-note">
-          <span class="status-dot" />VPN · всё устройство<span>·</span
+          <span class="status-dot" /> {{ tr("VPN · всё устройство") }} <span>·</span
           >{{
             config?.routing.proxyMode === "pac"
-              ? "С исключениями"
-              : "Весь трафик"
+              ? tr("С исключениями")
+              : tr("Весь трафик")
           }}
         </div>
       </template>
       <template v-else>
         <div class="page-heading">
-          <button class="icon-button" aria-label="Назад" @click="page = 'home'">
+          <button class="icon-button" :aria-label="tr('Назад')" @click="page = 'home'">
             <ArrowLeft :size="18" />
           </button>
           <h1>
             {{
               page === "settings"
-                ? "НАСТРОЙКИ"
+                ? tr("НАСТРОЙКИ")
                 : page === "servers"
-                  ? "СОЕДИНЕНИЯ"
-                  : "ЖУРНАЛ"
+                  ? tr("СОЕДИНЕНИЯ")
+                  : tr("ЖУРНАЛ")
             }}
           </h1>
         </div>
         <template v-if="page === 'settings' && draft">
           <section class="settings-section">
-            <h2><Palette :size="17" />ВНЕШНИЙ ВИД</h2>
+            <h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>
             <div class="theme-picker">
               <button
                 v-for="t in [
-                  { id: 'auto', label: 'Система', icon: Monitor },
-                  { id: 'light', label: 'Светлая', icon: Sun },
-                  { id: 'dark', label: 'Тёмная', icon: Moon },
+                  { id: 'auto', label: tr('Система'), icon: Monitor },
+                  { id: 'light', label: tr('Светлая'), icon: Sun },
+                  { id: 'dark', label: tr('Тёмная'), icon: Moon },
                 ]"
                 :key="t.id"
                 :class="{ selected: theme === t.id }"
@@ -399,15 +482,15 @@ onBeforeUnmount(() => {
             </div>
           </section>
           <section class="settings-section">
-            <h2><Link2 :size="17" />ПОДКЛЮЧЕНИЕ</h2>
+            <h2><Link2 :size="17" /> {{ tr("ПОДКЛЮЧЕНИЕ") }} </h2>
             <fieldset :disabled="busy">
               <label class="toggle-row"
-                >Запускать вместе с Windows<input
+                > {{ tr("Запускать вместе с Windows") }} <input
                   v-model="draft.ui.launchAtLogin"
                   type="checkbox"
                   role="switch" /><span class="switch" /></label
               ><label class="toggle-row"
-                >Подключаться при запуске<input
+                > {{ tr("Подключаться при запуске") }} <input
                   v-model="draft.core.autoStart"
                   type="checkbox"
                   role="switch" /><span class="switch"
@@ -415,28 +498,23 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <section class="settings-section">
-            <h2><GitBranch :size="17" />РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ</h2><p v-if="selectedProtocol === 'mist'" class="hint">Для Mist выберите Весь трафик.</p>
+            <h2><GitBranch :size="17" /> {{ tr("РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ") }} </h2><p v-if="selectedProtocol === 'mist'" class="hint"> {{ tr("Для Mist выберите Весь трафик.") }} </p>
             <fieldset :disabled="busy">
-              <label class="field-label" for="routing">Режим</label
-              ><ModeSelect v-model="split" :disabled="busy" /><textarea
+              <label class="field-label" for="routing"> {{ tr("Режим") }} </label
+              ><ModeSelect v-model="split" :disabled="busy" :language="language" /><textarea
                 v-if="split"
                 v-model="domains"
-                aria-label="Домены исключений"
+                :aria-label="tr('Домены исключений')"
                 placeholder="hh.ru&#10;avito.ru&#10;vk.ru"
                 rows="3"
               />
-              <p v-if="split" class="hint">
-                Один домен на строку. Включая поддомены.
-              </p>
+              <p v-if="split" class="hint"> {{ tr("Один домен на строку. Включая поддомены.") }} </p>
             </fieldset>
           </section>
-          <p v-if="running" class="hint reconnect-hint">
-            Настройки подключения применятся с переподключением.
-          </p>
-          <button class="primary" :disabled="busy" @click="saveSettings">
-            Сохранить настройки</button
+          <p v-if="running" class="hint reconnect-hint"> {{ tr("Настройки подключения применятся с переподключением.") }} </p>
+          <button class="primary" :disabled="busy" @click="saveSettings"> {{ tr("Сохранить настройки") }} </button
           ><button class="text-row" @click="page = 'logs'">
-            <ScrollText :size="16" />Журнал подключения<ChevronRight
+            <ScrollText :size="16" /> {{ tr("Журнал подключения") }} <ChevronRight
               :size="15"
             />
           </button>
@@ -461,35 +539,32 @@ onBeforeUnmount(() => {
                 v-if="n.sourceUrl"
                 class="icon-button"
                 :disabled="busy || running"
-                aria-label="Обновить подписку"
+                :aria-label="tr('Обновить подписку')"
                 @click="refresh(n.id)"
               >
                 <RefreshCw :size="15" /></button
               ><button
                 class="icon-button"
                 :disabled="busy || running"
-                aria-label="Удалить сервер"
+                :aria-label="tr('Удалить сервер')"
                 @click="deleteId = n.id"
               >
                 <Trash2 :size="15" />
               </button>
               <div v-if="deleteId === n.id" class="delete-confirm">
-                <span>Удалить соединение?</span
-                ><button @click="deleteId = ''">Отмена</button
-                ><button :disabled="busy" @click="remove(n.id)">Удалить</button>
+                <span> {{ tr("Удалить соединение?") }} </span
+                ><button @click="deleteId = ''"> {{ tr("Отмена") }} </button
+                ><button :disabled="busy" @click="remove(n.id)"> {{ tr("Удалить") }} </button>
               </div>
             </div>
           </div>
-          <p v-if="!config?.nodes.length" class="muted empty-text">
-            Здесь появятся ваши соединения
-          </p>
+          <p v-if="!config?.nodes.length" class="muted empty-text"> {{ tr("Здесь появятся ваши соединения") }} </p>
           <button
             class="primary"
             :disabled="busy || running"
             @click="importing = true"
           >
-            <Plus :size="16" />Добавить соединение
-          </button></template
+            <Plus :size="16" /> {{ tr("Добавить соединение") }} </button></template
         >
         <template v-if="page === 'logs'"
           ><p class="hint">
@@ -504,11 +579,10 @@ onBeforeUnmount(() => {
               <small>{{ entry.timestamp }} · {{ entry.level }}</small>
               <p>{{ entry.message }}</p>
             </div>
-            <p v-if="!state?.recentLogs?.length">Событий пока нет</p>
+            <p v-if="!state?.recentLogs?.length"> {{ tr("Событий пока нет") }} </p>
           </div>
           <button class="text-row" :disabled="busy" @click="copyLogs">
-            <Copy :size="15" />Скопировать журнал
-          </button></template
+            <Copy :size="15" /> {{ tr("Скопировать журнал") }} </button></template
         >
       </template>
       <div
@@ -521,7 +595,7 @@ onBeforeUnmount(() => {
     </main>
     <footer>
       <span :role="message ? 'status' : undefined">{{
-        message || "CONNECT VPN"
+        tr(message) || "CONNECT VPN"
       }}</span>
     </footer>
     <div
@@ -536,45 +610,41 @@ onBeforeUnmount(() => {
         aria-labelledby="import-title"
       >
         <div class="page-heading">
-          <h1 id="import-title">НОВОЕ СОЕДИНЕНИЕ</h1>
+          <h1 id="import-title"> {{ tr("НОВОЕ СОЕДИНЕНИЕ") }} </h1>
           <button
             class="icon-button"
             :disabled="busy"
-            aria-label="Закрыть"
+            :aria-label="tr('Закрыть')"
             @click="importing = false"
           >
             <X :size="18" />
           </button>
         </div>
-        <p class="muted">
-          Вставьте ссылку сервера или клиентскую конфигурацию Mist.
-        </p>
+        <p class="muted"> {{ tr("Вставьте ссылку сервера или клиентскую конфигурацию Mist.") }} </p>
         <form @submit.prevent="importLink">
-          <label class="field-label" for="link">Ссылка соединения</label
+          <label class="field-label" for="link"> {{ tr("Ссылка соединения") }} </label
           ><textarea
             id="link"
             v-model="link"
             autofocus
-            placeholder="sudoku://, vless://, vmess://, trojan:// или JSON Mist"
+            :placeholder="tr('sudoku://, vless://, vmess://, trojan:// или JSON Mist')"
             rows="4"
             required
             :disabled="busy"
             spellcheck="false"
           /><label class="field-label" for="name"
-            >Название <span class="muted">· необязательно</span></label
+            > {{ tr("Название") }} <span class="muted"> {{ tr("· необязательно") }} </span></label
           ><input
             id="name"
             v-model="name"
-            placeholder="Мой сервер"
+            :placeholder="tr('Мой сервер')"
             maxlength="80"
             :disabled="busy"
           />
-          <p class="hint">
-            Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON
-          </p>
+          <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON") }} </p>
           <div v-if="error" class="notice error" role="alert">{{ error }}</div>
           <button class="primary" :disabled="busy || !link.trim()">
-            {{ busy ? "Добавление…" : "Добавить соединение" }}
+            {{ busy ? tr("Добавление…") : tr("Добавить соединение") }}
           </button>
         </form>
       </section>

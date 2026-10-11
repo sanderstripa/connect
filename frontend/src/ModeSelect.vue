@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount } from "vue";
 import { ChevronDown, Check } from "lucide-vue-next";
 const model = defineModel<boolean>({ required: true });
-defineProps<{ disabled?: boolean }>();
+const props = defineProps<{ disabled?: boolean; language?: string }>();
 const open = ref(false),
   root = ref<HTMLElement>();
-const options = [
-  { value: false, label: "Весь трафик через VPN" },
-  { value: true, label: "Все, кроме списка" },
-];
+const options = computed(() => [
+  { value: false, label: props.language === "en" ? "All traffic through VPN" : "Весь трафик через VPN" },
+  { value: true, label: props.language === "en" ? "All except the list" : "Все, кроме списка" },
+]);
 function choose(value: boolean) {
   model.value = value;
   open.value = false;
@@ -39,7 +39,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
       type="button"
       class="mode-trigger"
       role="combobox"
-      aria-label="Режим"
+      :aria-label="props.language === 'en' ? 'Mode' : 'Режим'"
       aria-haspopup="listbox"
       :aria-expanded="open && !disabled"
       aria-controls="routing-options"

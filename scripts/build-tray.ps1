@@ -1,29 +1,34 @@
+$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
-$connectTrayDir=Join-Path $PSScriptRoot '../build/tray'
-# Draw the application's concentric rings and wave mark at high resolution,
-# then downsample once for crisp tray edges. Background stays black in both states.
-foreach($connectVariant in @(@{Name='off-light';Color='#B4B7BB'},@{Name='off-dark';Color='#B4B7BB'},@{Name='on';Color='#26BC79'})) {
- $connectCanvas=[Drawing.Bitmap]::new(256,256)
- $connectGraphics=[Drawing.Graphics]::FromImage($connectCanvas)
- $connectGraphics.SmoothingMode=[Drawing.Drawing2D.SmoothingMode]::AntiAlias
- $connectBrush=[Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(255,14,15,16))
- $connectGraphics.FillEllipse($connectBrush,5,5,246,246)
- $connectPen=[Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml($connectVariant.Color),9)
- $connectPen.StartCap=[Drawing.Drawing2D.LineCap]::Round
- $connectPen.EndCap=[Drawing.Drawing2D.LineCap]::Round
- $connectGraphics.DrawEllipse($connectPen,10,10,236,236)
- $connectGraphics.DrawEllipse($connectPen,49,49,158,158)
- $connectGraphics.DrawArc($connectPen,85,85,86,86,155,245)
- $connectPath=[Drawing.Drawing2D.GraphicsPath]::new()
- $connectPath.AddBezier(51,158,87,185,106,90,146,137)
- $connectPath.AddBezier(146,137,162,154,173,173,188,187)
- $connectGraphics.DrawPath($connectPen,$connectPath)
- $connectGraphics.DrawBezier($connectPen,90,173,119,147,126,152,151,181)
- $connectSmall=[Drawing.Bitmap]::new(32,32)
- $connectScale=[Drawing.Graphics]::FromImage($connectSmall)
- $connectScale.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
- $connectScale.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality
- $connectScale.DrawImage($connectCanvas,0,0,32,32)
- $connectSmall.Save((Join-Path $connectTrayDir ($connectVariant.Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
- $connectScale.Dispose();$connectSmall.Dispose();$connectPath.Dispose();$connectGraphics.Dispose();$connectPen.Dispose();$connectBrush.Dispose();$connectCanvas.Dispose()
-}
+$connectRoot=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$connectTrayDir=Join-Path $connectRoot 'build/tray'
+$connectSource=[Drawing.Bitmap]::new((Join-Path $connectRoot 'build/appicon.png'))
+$connectOn=$connectSource.Clone()
+try {
+ # Preserve every contour, alpha value and black background from the app icon.
+ # Tint only its silver highlights; no substitute drawing or new geometry.
+ for($y=0;$y -lt $connectOn.Height;$y++){for($x=0;$x -lt $connectOn.Width;$x++){
+  $c=$connectSource.GetPixel($x,$y);$v=[Math]::Max($c.R,[Math]::Max($c.G,$c.B))/255.0
+  $amount=[Math]::Clamp(($v-0.16)/0.25,0.0,1.0)
+  $r=[int][Math]::Round($c.R*(1-$amount)+$v*38*$amount)
+  $g=[int][Math]::Round($c.G*(1-$amount)+$v*210*$amount)
+  $b=[int][Math]::Round($c.B*(1-$amount)+$v*133*$amount)
+  $connectOn.SetPixel($x,$y,[Drawing.Color]::FromArgb($c.A,$r,$g,$b))
+ }}
+ foreach($size in @(16,20,24,28,32,36,40,48,64)) {foreach($variant in @('off','on')) {
+  $bmp=[Drawing.Bitmap]::new($size,$size,[Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  $g=[Drawing.Graphics]::FromImage($bmp)
+  $g.CompositingMode=[Drawing.Drawing2D.CompositingMode]::SourceCopy
+  $g.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $g.PixelOffsetMode=[Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  $attributes=[Drawing.Imaging.ImageAttributes]::new()
+  $attributes.SetWrapMode([Drawing.Drawing2D.WrapMode]::TileFlipXY)
+  $image=if($variant -eq 'on'){$connectOn}else{$connectSource}
+  $g.DrawImage($image,[Drawing.Rectangle]::new(0,0,$size,$size),0,0,$image.Width,$image.Height,[Drawing.GraphicsUnit]::Pixel,$attributes)
+  $bmp.Save((Join-Path $connectTrayDir "$variant-$size.png"),[Drawing.Imaging.ImageFormat]::Png)
+  $attributes.Dispose();$g.Dispose();$bmp.Dispose()
+ }}
+ Copy-Item (Join-Path $connectTrayDir 'off-32.png') (Join-Path $connectTrayDir 'off-light.png') -Force
+ Copy-Item (Join-Path $connectTrayDir 'off-32.png') (Join-Path $connectTrayDir 'off-dark.png') -Force
+ Copy-Item (Join-Path $connectTrayDir 'on-32.png') (Join-Path $connectTrayDir 'on.png') -Force
+}finally{$connectOn.Dispose();$connectSource.Dispose()}

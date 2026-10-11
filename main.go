@@ -24,14 +24,8 @@ var bundledRuntime embed.FS
 //go:embed build/appicon.png
 var trayIcon []byte
 
-//go:embed build/tray/off-light.png
-var trayOffLight []byte
-
-//go:embed build/tray/off-dark.png
-var trayOffDark []byte
-
-//go:embed build/tray/on.png
-var trayOn []byte
+//go:embed build/tray/*.png
+var trayImages embed.FS
 
 //go:embed build/tray/logo-monochrome.svg
 var trayTemplateIcon []byte
@@ -194,6 +188,8 @@ func main() {
 		trayWindow.Hide()
 	})
 	tray := app.SystemTray.New()
+	trayOffLight, trayOn := loadTrayImages()
+	trayOffDark := trayOffLight
 	tray.SetTooltip("Connect")
 	if runtime.GOOS == "darwin" {
 		tray.SetTemplateIcon(trayTemplateIcon)

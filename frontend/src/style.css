@@ -832,3 +832,4 @@ footer {
 }
 
 .protocol-picker{display:flex;gap:4px;background:var(--hover);border-radius:12px;padding:4px;margin:0 auto 10px;width:280px}.protocol-picker button{flex:1;padding:10px;border-radius:9px;font-size:12px}.protocol-picker .selected{background:var(--accent);color:var(--inverse)}
+.window-actions .language-button{font-size:10px;font-weight:500;letter-spacing:.4px}
