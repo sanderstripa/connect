@@ -10,7 +10,7 @@ Connect brings **Sudoku, Xray and experimental Mist** into a clean interface ins
 ## Windows
 
 - Connect with one button and switch between saved protocol profiles.
-- Route device traffic through TUN; a green tray icon indicates an active core and tunnel.
+- Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
 - Import Sudoku links/subscriptions, VLESS, VMess, Trojan or a Mist client configuration.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
@@ -23,7 +23,7 @@ Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles
 
 ## Chrome
 
-**Your connections, directly in the popup.** Click **Add**, paste a link or client configuration, and let Connect detect the protocol. Each saved connection has a small switch. Turning on another connection turns the previous one off; turning off the active switch disconnects. There is no separate settings page.
+**Your connections, directly in the popup.** Click **Add**, paste a link or client configuration, and let Connect detect the protocol. Each saved connection has a small switch. Turning on another connection turns the previous one off; turning off the active switch disconnects. There is no separate settings page. Switch between Russian and English or light and dark themes directly in the header; both preferences are remembered.
 
 Chrome starts its own local helper, so the desktop window can remain closed. Browser profiles are stored independently in `%APPDATA%\connect-chrome`. The helper does not change Windows proxy settings, DNS or routes.
 

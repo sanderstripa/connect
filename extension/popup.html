@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect</title><link rel="stylesheet" href="style.css"></head>
 <body class="popup">
-<header><span class="wordmark">CONNECT.</span></header>
+<header><span class="wordmark">CONNECT.</span><div class="tools"><button id="language" aria-label="Язык интерфейса">RU</button><button id="theme" class="toggle" role="switch" aria-checked="true" aria-label="Светлая тема"><span></span></button></div></header>
 <main>
 <section id="connections" aria-label="Соединения">
 <div id="profiles" class="profiles"></div>
@@ -9,12 +9,12 @@
 <button id="add" class="add"><span aria-hidden="true">+</span> Добавить</button>
 </section>
 <section id="editor" hidden>
-<div class="editor-heading"><button id="back" aria-label="Назад" class="back">‹</button><h1>Добавить соединение</h1></div>
+<div class="editor-heading"><button id="back" aria-label="Назад" class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><h1 id="editor-title">Добавить соединение</h1></div>
 <form id="import">
-<label for="link">Ссылка или конфигурация</label>
+<label id="link-label" for="link">Ссылка или конфигурация</label>
 <textarea id="link" rows="4" spellcheck="false" autocomplete="off" placeholder="sudoku://, vless:// или JSON Mist" required maxlength="1048576"></textarea>
 <p id="detected" class="detected" aria-live="polite"></p>
-<label for="name">Название <span class="muted">· необязательно</span></label>
+<label id="name-label" for="name">Название <span class="muted">· необязательно</span></label>
 <input id="name" placeholder="Мой сервер" maxlength="120" autocomplete="off">
 <button id="save" class="primary" type="submit">Добавить</button>
 </form>
@@ -22,6 +22,6 @@
 <p id="error" role="alert" hidden></p>
 <button id="release" class="release" hidden>Отключить VPN</button>
 </main>
-<footer>Только Chrome</footer>
+<footer id="footer">Только Chrome</footer>
 <script src="popup.js"></script>
 </body></html>

@@ -58,3 +58,10 @@ test('queued toggles retain exclusive selection and publish busy state for a reo
  const second=h.send({action:'activate',nodeId:'one'});await first;const r=await second;assert.equal(r.activeNodeId,'one');assert.equal(r.connected,true);assert.equal(h.storage.view.busy,false);
  assert.deepEqual(h.commands,['status','select','connect','status','disconnect','select','connect']);
 });
+
+test('intentional disconnect ignores delayed stopped and proxy error events',async()=>{
+ const h=harness();await h.send('connect');await h.send('disconnect');
+ h.listeners.port.receive({event:'stopped',connected:false});h.listeners.proxyError();
+ await new Promise(r=>setTimeout(r,10));assert.equal(h.storage.view.error,'');assert.equal(h.storage.view.desired,false);
+ h.listeners.port.disconnect();await new Promise(r=>setTimeout(r,10));assert.equal(h.storage.view.error,'');
+});

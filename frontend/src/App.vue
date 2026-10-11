@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
         >
       </template>
       <div
-        v-if="error || state?.lastError || state?.routeSetupError"
+        v-if="error || (running && state?.lastError) || state?.routeSetupError"
         class="notice error"
         role="alert"
       >

@@ -36,6 +36,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
     coreRunning: false,
     tunRunning: false,
     startedAtUnix: 0,
+    lastError: "previous shutdown notification",
     traffic: { recentBandwidth: [] },
     kernel: {},
     latencies: [],
@@ -100,6 +101,8 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await page.evaluate(() => document.fonts.ready);
   await assertFits(page);
   await expect(page.getByText("Добавьте сервер, чтобы начать")).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  state.lastError = "";
   await expect(
     page.getByRole("button", { name: "Подключить VPN", exact: true }),
   ).toBeDisabled();
