@@ -1,81 +1,50 @@
-# Connect
+<p align="center">
+  <img src="build/appicon.png" width="96" alt="Connect icon">
+</p>
+<h1 align="center">Connect</h1>
+<p align="center">A minimal VPN for Windows, with an independent Chrome extension.</p>
+<p align="center"><a href="https://github.com/sanderstripa/connect/releases">Download for Windows</a></p>
 
-Минималистичный VPN для Windows 10/11 x64 и независимый компонент для Chrome.
-Визуальная основа — [sudoku-app](https://github.com/sanderstripa/sudoku-app):
-Montserrat, спокойная монохромная палитра, светлая/тёмная/системная темы,
-круглая кнопка подключения, настройки и меню трея.
-
-**[Релизы и установщик](https://github.com/sanderstripa/connect/releases)**
+Connect brings **Sudoku, Xray and experimental Mist** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
 
 ## Windows
 
-1. Запустите Connect-Setup.exe. При желании оставьте включённым компонент Chrome.
-2. Добавьте sudoku://, подписку Sudoku UI, vless://, vmess://, trojan:// или клиентский JSON Mist.
-3. Выберите Sudoku, Xray или Mist и нажмите кнопку питания. Переключение протокола выбирает сохранённый профиль и переподключает активный VPN.
+- Connect with one button and switch between saved protocol profiles.
+- Route device traffic through TUN; a green tray icon indicates an active core and tunnel.
+- Import Sudoku links/subscriptions, VLESS, VMess, Trojan or a Mist client configuration.
+- Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
+- Keep profiles across updates and uninstallations. No server credentials are bundled.
 
-В трее — новая иконка, зелёная при работающем ядре и TUN.
-Переключение Sudoku ↔ Xray с IPv4-адресами серверов и общим локальным портом
-сохраняет TUN, DNS и маршруты: перезапускается только ядро, проверяется настоящий
-HTTP-трафик; при ошибке восстанавливается предыдущий профиль. Доменные/IPv6
-адреса, разные локальные порты и Mist используют полный перезапуск.
-Поиск адаптеров и физического маршрута Windows выполняется через системный API,
-без отдельных запусков PowerShell.
+Install **Connect-Setup.exe**, add your own connection, then select its protocol and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.
 
-Xray сохраняет параметры xhttp host, path, mode, extra, TLS/Reality.
-Поддерживаются также TCP, WebSocket и gRPC. Mist использует исходники ветки
-mist-hardening-32, закреплённые на ревизии d4e7dacf22f9c3f4c5d762883544c102da0c6b49.
-Клиентские конфигурации и ключи хранятся в %APPDATA%/connect-app.
+Sudoku ↔ Xray switching retains TUN, DNS and routes when server addresses are IPv4 and the local port is shared. The new core is checked with real HTTP traffic; failure restores the previous profile. Domain names, IPv6, different ports and Mist use a full restart.
 
-Приложение работает через TUN для всего устройства. Интерфейс запускается с
-обычными правами, отдельный сетевой помощник запрашивает разрешение Windows.
-Закрытие окна скрывает его в трей; выход из трея отключает VPN.
-Требуется Microsoft Edge WebView2 Runtime. Установщик имеет русскую и английскую
-локализации. Обновление и удаление сохраняют профили.
+Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles are stored in `%APPDATA%\connect-app`.
 
 ## Chrome
 
-Компонент установщика размещает расширение в Program Files/Connect/ChromeExtension
-и регистрирует native messaging helper. После установки автоматически открывается
-chrome://extensions, а путь к папке расширения копируется в буфер обмена. Включите **Режим разработчика** и выберите
-**Загрузить распакованное**, вставьте путь (Ctrl+V) и подтвердите выбор папки.
-Кнопка в установщике повторяет открытие Chrome и копирование пути. Установка через Chrome Web Store
-в этот выпуск не входит.
+**Your connections, directly in the popup.** Click **Add**, paste a link or client configuration, and let Connect detect the protocol. Each saved connection has a small switch. Turning on another connection turns the previous one off; turning off the active switch disconnects. There is no separate settings page.
 
-В панели расширения — одна кнопка питания и вход в настройки. Профили и выбор
-протокола находятся в настройках. Chrome сам запускает помощник; окно приложения
-не требуется. Настройки расширения хранятся отдельно, в %APPDATA%/connect-chrome.
-Помощник не меняет системный прокси, DNS и маршруты. При включении расширение
-управляет прокси Chrome и запрещает WebRTC UDP вне прокси. При сбое настройки
-прокси сохраняются до явного отключения.
+Chrome starts its own local helper, so the desktop window can remain closed. Browser profiles are stored independently in `%APPDATA%\connect-chrome`. The helper does not change Windows proxy settings, DNS or routes.
 
-Расширение защищает поддерживаемый прокси-трафик Chrome, а не всё устройство.
-Все протоколы требуют локального помощника. Mist работает через добавленный
-адаптер SOCKS5 и отдельный пользовательский сетевой стек с TCP, UDP и DNS.
+Enable the Chrome component in the installer. It opens `chrome://extensions` and copies the extension folder path. Enable **Developer mode**, choose **Load unpacked**, and select `C:\Program Files\Connect\ChromeExtension`. After updating, reload Connect once on that page. Existing profiles are preserved. Chrome Web Store distribution is not included.
 
-## Проверки и ограничения первого выпуска
+The extension handles proxy-compatible Chrome traffic, rather than whole-device traffic. WebRTC UDP outside the proxy is disabled while enabled. If the helper or connection fails, the proxy remains in place to prevent a silent return to direct browsing; Connect retries, or you can explicitly disconnect. All protocols require the installed native helper.
 
-- Выполнены Windows Go-тесты приложения, установщика, импорта и изоляции Chrome.
-- Локальный интеграционный тест передаёт настоящий HTTP через Xray/xhttp и Sudoku,
-  переключает активный протокол и проверяет неизменность прокси Windows.
-- Проверены TCP/UDP адаптера Mist через пользовательский IP-стек и весь набор
-  Windows-совместимых тестов исходников Mist.
-- Проверены интерфейс, темы, настройки, трей и оба режима установщика.
-- Через изолированный браузерный помощник проверены реальные удалённые профили
-  Sudoku и Xray; пользовательские ключи в исходники и сборку не включены.
-- Работа TUN в реальной сети и транспорт Mist до внешнего Edge требуют отдельной
-  проверки. Скорость локального теста не является гарантией задержки удалённой сети.
-- Раздельное туннелирование в Windows доступно для Sudoku и Xray. Для Mist
-  используется режим «Весь трафик». В Chrome этого выпуска исключений нет.
-- Один активный профиль Chrome на пользователя Windows. Ядра обновляются вместе
-  с приложением. EXE не подписаны.
-- Адаптер Mist закрывается при потере транспорта. Chrome пытается восстановить
-  соединение; в Windows переподключение выполняется кнопкой. Mist экспериментальный.
+## Validation and current limits
 
-## Сборка
+Automated checks cover Windows core and installer tests, link import, browser isolation, extension lifecycle and UI behavior. Local integration tests pass real HTTP through Xray/xhttp and Sudoku, exercise switching and rollback, and verify that Windows proxy settings remain unchanged. The Mist SOCKS adapter has TCP/UDP tests; an external Mist Edge connection and TUN operation in the user's network still need separate validation.
 
-Windows x64, Go 1.27.0+, Node.js 24+, Git и доступ к интернету.
+- Mist is experimental. Its sources are pinned to revision `d4e7dacf22f9c3f4c5d762883544c102da0c6b49` of `mist-hardening-32`.
+- Windows split tunneling is available for Sudoku and Xray. Mist uses all-traffic mode; Chrome currently has no configurable exclusions.
+- One Chrome profile can be active per Windows user. Protocol cores update with the application.
+- Executables are unsigned. Local test timings do not guarantee remote connection speed.
 
-~~~powershell
+## Build
+
+Windows x64, Go 1.27.0+, Node.js 24+, Git and internet access are required.
+
+```powershell
 ./scripts/build-windows.ps1
 node ./scripts/test-extension.mjs
 node ./scripts/test-native.mjs
@@ -84,12 +53,8 @@ npx playwright install chromium
 npm test
 cd ..
 ./scripts/build-installer.ps1 -SkipApp
-~~~
+```
 
-Результаты: build/bin/Connect.exe, Connect-Setup.exe, Connect-Chrome.zip.
-Xray 26.3.27 скачивается из официального релиза с проверкой SHA256 архива;
-Mist собирается из включённых исходников; Sudoku 0.5.1 и HEV 2.17.1 упаковываются
-исходными скриптами. Происхождение указано в BUILD-PROVENANCE.md.
+Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` and `Connect-Chrome.zip`.
 
-Сохранены условия GPL-3.0-or-later и уведомления исходного проекта; см. LICENSE
-и THIRD_PARTY.md. Иконка предоставлена владельцем проекта из приложения VPN.
+Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Mist builds from included sources; Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
