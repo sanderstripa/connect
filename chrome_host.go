@@ -17,11 +17,12 @@ import (
 const chromeOrigin = "chrome-extension://gmhibjohmhkchkongeibochdfidjiiic/"
 
 type chromeRequest struct {
-	ID     int    `json:"id"`
-	Action string `json:"action"`
-	Link   string `json:"link"`
-	Name   string `json:"name"`
-	NodeID string `json:"nodeId"`
+	ID       int    `json:"id"`
+	Action   string `json:"action"`
+	ProbeURL string `json:"probeURL"`
+	Link     string `json:"link"`
+	Name     string `json:"name"`
+	NodeID   string `json:"nodeId"`
 }
 type chromeNode struct {
 	ID       string `json:"id"`
@@ -161,6 +162,12 @@ func runChromeHost() bool {
 						break
 					}
 					time.Sleep(100 * time.Millisecond)
+				}
+			}
+			if err == nil {
+				err = b.CheckProxyURL(req.ProbeURL)
+				if err != nil {
+					_ = b.StopProxy()
 				}
 			}
 		case "disconnect":
