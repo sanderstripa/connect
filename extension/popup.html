@@ -1,1 +1,27 @@
-<!doctype html><html lang="ru"><meta charset="utf-8"><link rel="stylesheet" href="style.css"><body class="popup"><header><span class="wordmark">CONNECT.</span><button id="settings" aria-label="Настройки" class="gear">⚙</button></header><main><p id="status" role="status">Проверка соединения…</p><button id="power" class="power" aria-label="Подключить VPN" aria-pressed="false" disabled><svg width="43" height="43" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 2v10M6.5 5.5a9 9 0 1 0 11 0"/></svg></button><p id="name" class="muted"></p><p id="error" role="alert"></p></main><footer>VPN · только Chrome</footer><script src="popup.js"></script></body></html>
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect</title><link rel="stylesheet" href="style.css"></head>
+<body class="popup">
+<header><span class="wordmark">CONNECT.</span></header>
+<main>
+<section id="connections" aria-label="Соединения">
+<div id="profiles" class="profiles"></div>
+<p id="status" role="status" class="muted" hidden></p>
+<button id="add" class="add"><span aria-hidden="true">+</span> Добавить</button>
+</section>
+<section id="editor" hidden>
+<div class="editor-heading"><button id="back" aria-label="Назад" class="back">‹</button><h1>Добавить соединение</h1></div>
+<form id="import">
+<label for="link">Ссылка или конфигурация</label>
+<textarea id="link" rows="4" spellcheck="false" autocomplete="off" placeholder="sudoku://, vless:// или JSON Mist" required maxlength="1048576"></textarea>
+<p id="detected" class="detected" aria-live="polite"></p>
+<label for="name">Название <span class="muted">· необязательно</span></label>
+<input id="name" placeholder="Мой сервер" maxlength="120" autocomplete="off">
+<button id="save" class="primary" type="submit">Добавить</button>
+</form>
+</section>
+<p id="error" role="alert" hidden></p>
+<button id="release" class="release" hidden>Отключить VPN</button>
+</main>
+<footer>Только Chrome</footer>
+<script src="popup.js"></script>
+</body></html>

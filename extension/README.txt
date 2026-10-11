@@ -3,8 +3,10 @@ CONNECT FOR CHROME
 1. Run Connect-Setup.exe and leave Chrome extension enabled.
 2. Open chrome://extensions and enable Developer mode.
 3. Choose Load unpacked and select C:\Program Files\Connect\ChromeExtension.
-4. Pin Connect to the toolbar. Open Settings and import your server.
-5. Use the single power button to connect or disconnect.
+4. Pin Connect to the toolbar. Click Add in the popup and paste your link or configuration.
+5. Use the switch beside a saved connection. Selecting another turns the previous one off.
+
+After updating, reload Connect once at chrome://extensions. Existing profiles are preserved.
 
 The desktop window does not need to be running. Chrome starts its own local
 helper. Profiles are separate: %APPDATA%\connect-chrome\config.json.
