@@ -1,0 +1,66 @@
+name: Windows
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.0'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build Windows app and test core
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - name: Test native helper and extension lifecycle
+        shell: pwsh
+        run: |
+          node scripts/test-extension.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Extension tests failed' }
+          node scripts/test-native.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
+      - name: Test interface
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          npx playwright install chromium
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Interface tests failed' }
+      - name: Build installer
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -SkipApp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Connect-Windows-x64
+          path: |
+            build/bin/Connect.exe
+            build/bin/Connect-Setup.exe
+            build/bin/Connect-Chrome.zip
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip --clobber
+          } else {
+            gh release create $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip --prerelease --title "Connect $env:GITHUB_REF_NAME" --notes-file build/windows/release-notes.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

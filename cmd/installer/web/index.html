@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect</title><link rel="stylesheet" href="style.css"></head>
+<body><div class="shell">
+<header><span>CONNECT.</span><div class="tools"><button id="language" aria-label="Язык интерфейса">RU</button><button id="theme" class="toggle" role="switch" aria-checked="false" aria-label="Светлая тема"><span></span></button><button id="close" aria-label="Закрыть">×</button></div></header>
+<main><img src="assets/icon.png" width="96" height="96" alt="Connect"><p class="version">CONNECT · 0.1.0</p><h1 id="title"></h1><p id="description" class="muted"></p>
+<div class="details"><span id="locationLabel"></span><span>Program Files / Connect</span></div>
+<label id="desktopRow"><span id="desktopLabel"></span><input id="desktop" type="checkbox" checked><span class="check"></span></label>
+<label id="chromeRow"><span id="chromeLabel">Расширение Chrome</span><input id="chrome" type="checkbox" checked><span class="check"></span></label><p id="chromeNote" class="note">После установки: chrome://extensions → Режим разработчика → Загрузить распакованное → Program Files / Connect / ChromeExtension</p>
+<div id="progress" hidden><span></span></div><p id="status" role="status"></p><p id="error" role="alert" hidden></p>
+<button id="primary" class="primary"></button><button id="secondary" class="secondary" hidden></button>
+<p id="note" class="note"></p></main><footer><span id="footer"></span><span>CONNECT</span></footer>
+</div><script>window.setupToken="__TOKEN__";window.uninstallMode=__MODE__;</script><script type="module" src="/wails/runtime.js"></script><script src="setup.js"></script></body></html>

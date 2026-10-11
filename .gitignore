@@ -1,0 +1,37 @@
+/build/bin/
+/runtime/
+.tmp/
+.task/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/package.json.md5
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Logs
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+cosign.key
+cosign.pub
+*.syso
+frontend/test-results/
+frontend/playwright-report/
+
+/cmd/installer/chrome/
+
+/.tmp-native-*/

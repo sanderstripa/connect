@@ -1,0 +1,58 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Build binary for macOS
+    deps:
+      - task: common:build:frontend
+        vars:
+          DEV: '{{.DEV}}'
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - go build {{if ne .DEV "true"}}-tags production -trimpath -buildvcs=false -ldflags="-w -s"{{end}} -o {{.OUTPUT | default (printf "%s/%s" .BIN_DIR .APP_NAME)}}
+    env:
+      GOOS: darwin
+      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_ENABLED: 1
+      MACOSX_DEPLOYMENT_TARGET: '{{.MACOSX_DEPLOYMENT_TARGET | default "11.0"}}'
+      CGO_CFLAGS: '-O2 -g -mmacosx-version-min={{.MACOSX_DEPLOYMENT_TARGET | default "11.0"}}'
+      CGO_CXXFLAGS: '-O2 -g -mmacosx-version-min={{.MACOSX_DEPLOYMENT_TARGET | default "11.0"}}'
+      CGO_LDFLAGS: '-O2 -g -mmacosx-version-min={{.MACOSX_DEPLOYMENT_TARGET | default "11.0"}}'
+
+  package:
+    summary: Package macOS .app bundle
+    deps:
+      - task: build
+    cmds:
+      - |
+        if [ ! -f build/darwin/icons.icns ] && [ -f build/appicon.png ]; then
+          wails3 generate icons -input build/appicon.png -macfilename build/darwin/icons.icns
+        fi
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - cp "{{.OUTPUT | default (printf "%s/%s" .BIN_DIR .APP_NAME)}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS/{{.APP_NAME}}"
+      - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Info.plist"
+      - |
+        if [ -f build/darwin/icons.icns ]; then
+          cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources/iconfile.icns"
+        fi
+      - |
+        if [ -f build/appicon.png ]; then
+          cp build/appicon.png "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources/appicon.png"
+        fi
+      - rm -f "{{.OUTPUT | default (printf "%s/%s" .BIN_DIR .APP_NAME)}}"
+
+  run:
+    summary: Run macOS binary
+    deps:
+      - task: build
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}'
+
+  run:nobuild:
+    summary: Run already-built macOS binary
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}'
