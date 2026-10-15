@@ -59,3 +59,5 @@ cd ..
 Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` and `Connect-Chrome.zip`.
 
 Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Mist builds from included sources; Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
+
+The signal-and-peak identity is maintained in [connect.svg](build/branding/connect.svg). All application, installer, extension, tray and platform icons are generated from this vector source during the Windows build.

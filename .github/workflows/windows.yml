@@ -29,6 +29,8 @@ jobs:
       - name: Test native helper and extension lifecycle
         shell: pwsh
         run: |
+          node scripts/verify-branding.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Branding verification failed' }
           node scripts/test-extension.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Extension tests failed' }
           node scripts/test-native.mjs
@@ -61,6 +63,6 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip --clobber
           } else {
-            gh release create $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip --prerelease --title "Connect $env:GITHUB_REF_NAME" --notes-file build/windows/release-notes.md
+            gh release create $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip --latest --title "Connect $env:GITHUB_REF_NAME" --notes-file build/windows/release-notes.md
           }
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1280" viewBox="0 0 1280 1280">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0.85" y2="1"><stop stop-color="#151719"/><stop offset="1" stop-color="#090a0b"/></linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#eef0f6"/><stop offset="1" stop-color="#cdd2dc"/></linearGradient>
+  </defs>
+  <circle cx="640" cy="640" r="500" fill="url(#background)" stroke="url(#silver)" stroke-width="13"/>
+  <circle cx="640" cy="643" r="354" fill="none" stroke="url(#silver)" stroke-width="32"/>
+  <path d="M 402 628 C 424 510 519 420 640 422 C 762 419 858 507 881 628" fill="none" stroke="url(#silver)" stroke-width="32" stroke-linecap="round"/>
+  <path d="M 468 689 C 501 599 573 553 640 558 C 711 553 785 611 814 689" fill="none" stroke="url(#silver)" stroke-width="32" stroke-linecap="round"/>
+  <path d="M 322 790 C 445 852 521 681 640 685 C 704 684 793 791 900 879" fill="none" stroke="url(#silver)" stroke-width="32" stroke-linecap="round"/>
+  <path d="M 525 887 L 640 776 L 753 887 L 710 887 L 640 819 L 569 887 Z" fill="url(#silver)"/>
+</svg>
