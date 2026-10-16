@@ -21,12 +21,11 @@ const previousApp=computed(()=>{const c=items.value.app;if(c?.previous)return c.
 function compareVersion(a:string,b:string){const x=a.replace(/^v/,'').split(/[.+-]/).map(Number),y=b.replace(/^v/,'').split(/[.+-]/).map(Number);for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0;}
 async function install(id:string,version:string){
  if(!version)return;
- if(!confirm(text(`Установить ${name(id)} ${version}?`, `Install ${name(id)} ${version}?`) +(id==='app'?text('\nConnect закроется и запустит установщик. Перед этим отключите расширение Connect на chrome://extensions или полностью закройте Chrome.','\nConnect will close and launch setup. Disable Connect on chrome://extensions or fully quit Chrome first.'):text('\nИзменение вступит в силу при следующем подключении.','\nThe change takes effect on the next connection.'))))return;
  await perform(id,async()=>{await call('UpdateComponent',id,version);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}await status(id,false);notice.value=text('Установлено. Переподключите VPN, чтобы использовать новую версию.','Installed. Reconnect VPN to use the new version.')});
 }
 async function rollback(id:string){
  if(id==='app'&&!items.value.app?.previous){await install(id,previousApp.value);return}
- const version=items.value[id]?.previous;if(!version||!confirm(text(`Вернуть ${name(id)} ${version}?`,`Restore ${name(id)} ${version}?`)+(id==='app'?text('\nConnect закроется и запустит установщик. Отключите расширение Connect на chrome://extensions.','\nConnect will close and launch setup. Disable Connect on chrome://extensions.'):'')))return;
+ const version=items.value[id]?.previous;if(!version)return;
  await perform(id,async()=>{await call('RollbackComponent',id);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}await status(id,false);notice.value=text('Предыдущая версия восстановлена. Переподключите VPN.','Previous version restored. Reconnect VPN.')});
 }
 onMounted(()=>perform('loading',async()=>{for(const id of ids)await status(id,false)}));

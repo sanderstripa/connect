@@ -16,6 +16,6 @@ try {
  & go test ./cmd/mist-client ./internal/config
  if($LASTEXITCODE -ne 0){throw 'Mist tests failed'}
  $env:CGO_ENABLED='0'
- & go build -trimpath '-ldflags=-w -s -X main.buildVersion=connect-0.1.6+mist-d4e7dac-socks' -o (Join-Path $out 'mist-client.exe') ./cmd/mist-client
+ & go build -trimpath '-ldflags=-w -s -X main.buildVersion=connect-0.1.7+mist-d4e7dac-socks' -o (Join-Path $out 'mist-client.exe') ./cmd/mist-client
  if($LASTEXITCODE -ne 0){throw 'Mist build failed'}
 }finally{Pop-Location}

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Connect",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Sudoku, Xray and Mist. Independent browser connection.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu6BYBlL8wDCMijjt98R/sCRXpR4t6WI+Xn7GWdce1RWrNlPsT+gh0QlEGqybox96I5hpiT6Wufscn+g2D+l7ymYNwJmWfIf69T5sFsYXA3wf2Jeqv5xa5NoLMzbMkoHbZ+LxFSUTefINZNLIjeOjFA7DjkXYKgzC8NWkYHiVsUPBq6PKH/I74wHQmJnuMhYGEuGWtl+W/ZAQF/SghUMxUDlDodcAtQcdOMfytE1HAcO2/XQJ16Mx5z5cdzFxim4NzwUir+mdcBdD4AMeA+FYzipfsuteNzCHhjp1t1K7YYNWvseujw+HBecppHkEhuESJ6ck5KPTTQmA3RjYTuuiBQIDAQAB",
   "permissions": [
