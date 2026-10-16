@@ -37,12 +37,16 @@ type packetTunnel interface {
 
 type packetBatchReader interface { ReadPacketBatch([][]byte, []int) (int, error) }
 
+var buildVersion = "development"
+
 func main() {
+ versionOnly := flag.Bool("version", false, "print Connect-compatible Mist version")
 	configPath := flag.String("config", "client.json", "path to client config")
 	recoverOnly := flag.Bool("recover", false, "restore MIST network changes and exit")
 	transportMode := flag.String("transport", "auto", "transport mode: auto, h3s, h3, or h2")
 	socksListen := flag.String("socks", "", "Connect loopback SOCKS listener (no OS routing)")
 	flag.Parse()
+ if *versionOnly { fmt.Println(buildVersion); return }
 	if *transportMode != "auto" && *transportMode != "h3s" && *transportMode != "h3" && *transportMode != "h2" { log.Fatalf("transport: expected auto, h3s, h3, or h2; got %q", *transportMode) }
 	if *recoverOnly {
 		if err := platform.RecoverClient(); err != nil { log.Fatalf("recover network: %v", err) }

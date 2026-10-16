@@ -109,6 +109,11 @@ func (b *Backend) switchCoreKeepingTun(previous NodeConfig) (bool, error) {
 func (b *Backend) startSwitchedCore(ctx context.Context, plan proxyStartPlan, ifIndex int) error {
 	cache := filepath.Join(b.store.RuntimeDir(), "cache", "sudoku-rules")
 	env := baseCoreEnvironment(plan.coreLogLevel, plan.trafficStatsFile, cache)
+	componentEnv, err := b.componentEnvironment(protocolOf(plan.node))
+	if err != nil {
+		return err
+	}
+	env = append(env, componentEnv...)
 	env = append(env, fmt.Sprintf("SUDOKU_OUTBOUND_IFINDEX=%d", ifIndex), fmt.Sprintf("CONNECT_OUTBOUND_IFINDEX=%d", ifIndex))
 	if err := b.coreProc.Start(plan.sudokuBinary, engineArgs(plan.node, plan.sudokuConfigPath, plan.localPort), env, plan.workDir, b.onCoreLog); err != nil {
 		return err

@@ -88,6 +88,15 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 			return proxyStartPlan{}, fmt.Errorf("ядро %s не найдено", protocolOf(plan.node))
 		}
 	}
+	componentName := protocolOf(plan.node)
+	componentFile := componentName + ".exe"
+	if componentName == "mist" {
+		componentFile = "mist-client.exe"
+	}
+	plan.sudokuBinary, err = b.resolveComponentLocked(componentName, componentFile, plan.sudokuBinary)
+	if err != nil {
+		return proxyStartPlan{}, err
+	}
 	plan.hevBinary = runtimeConfig.Core.HevBinary
 	plan.coreLogLevel = runtimeConfig.Core.LogLevel
 	plan.trafficStatsFile = filepath.Join(b.store.RuntimeDir(), "traffic_stats.json")

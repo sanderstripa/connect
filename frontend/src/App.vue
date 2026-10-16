@@ -34,10 +34,11 @@ import {
 import { backendApi as api } from "./api";
 import type { AppConfig, RuntimeState } from "./types";
 import ModeSelect from "./ModeSelect.vue";
+import UpdatesPanel from "./UpdatesPanel.vue";
 const draft = ref<AppConfig>();
 const config = ref<AppConfig>(),
   state = ref<RuntimeState>();
-const page = ref<"home" | "settings" | "servers" | "logs">("home");
+const page = ref<"home" | "settings" | "servers" | "logs" | "updates">("home");
 const removeNavigation = Events.On("main:navigate", async (event) => {
   await reload();
   if (event.data === "settings") openSettings();
@@ -57,9 +58,7 @@ const error = ref(""),
 const active = computed(() =>
   config.value?.nodes.find((n) => n.id === config.value?.activeNodeId),
 );
-const protocols = ["sudoku", "xray", "mist"];
 const selectedProtocol = computed(() => active.value?.protocol || "sudoku");
-async function chooseProtocol(protocol: string) { if(active.value && selectedProtocol.value===protocol) return; const node=config.value?.nodes.find(n=>(n.protocol || "sudoku")===protocol); if(node) await select(node.id); else { importing.value=true; link.value=""; name.value=""; } }
 const language = computed(() => config.value?.ui.language === 'en' ? 'en' : 'ru');
 const english: Record<string,string> = {
   "Свернуть": "Minimize",
@@ -368,7 +367,7 @@ onBeforeUnmount(() => {
     <header class="titlebar">
       <span class="wordmark">CONNECT<span class="wordmark-dot">.</span></span>
       <div class="window-actions">
-        <button v-if="page === 'settings'" class="language-button" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'" :disabled="busy" @click="toggleLanguage">{{ language.toUpperCase() }}</button>
+        <button v-if="page === 'settings' || page === 'updates'" class="language-button" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'" :disabled="busy" @click="toggleLanguage">{{ language.toUpperCase() }}</button>
         <button :aria-label="tr('Свернуть')" @click="Window.Minimise()">
           <Minus :size="15" /></button
         ><button :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
@@ -388,7 +387,6 @@ onBeforeUnmount(() => {
             <Settings2 :size="19" />
           </button>
         </div>
-        <nav class="protocol-picker" :aria-label="tr('Протокол')"><button v-for="p in protocols" :key="p" :class="{selected: selectedProtocol===p}" :disabled="busy" @click="chooseProtocol(p)">{{ p==='xray' ? 'Xray' : p==='mist' ? 'Mist' : 'Sudoku' }}</button></nav>
         <section class="connection">
           <div class="status">
             <span class="status-dot" :class="{ online: healthy }" />{{
@@ -449,19 +447,21 @@ onBeforeUnmount(() => {
       </template>
       <template v-else>
         <div class="page-heading">
-          <button class="icon-button" :aria-label="tr('Назад')" @click="page = 'home'">
+          <button class="icon-button" :aria-label="tr('Назад')" @click="page = page === 'updates' ? 'settings' : 'home'">
             <ArrowLeft :size="18" />
           </button>
           <h1>
             {{
               page === "settings"
                 ? tr("НАСТРОЙКИ")
+                : page === "updates" ? (language === "en" ? "UPDATES" : "ОБНОВЛЕНИЕ")
                 : page === "servers"
                   ? tr("СОЕДИНЕНИЯ")
                   : tr("ЖУРНАЛ")
             }}
           </h1>
         </div>
+        <UpdatesPanel v-if="page === 'updates'" :language="language" :running="running" />
         <template v-if="page === 'settings' && draft">
           <section class="settings-section">
             <h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>
@@ -513,11 +513,11 @@ onBeforeUnmount(() => {
           </section>
           <p v-if="running" class="hint reconnect-hint"> {{ tr("Настройки подключения применятся с переподключением.") }} </p>
           <button class="primary" :disabled="busy" @click="saveSettings"> {{ tr("Сохранить настройки") }} </button
-          ><button class="text-row" @click="page = 'logs'">
-            <ScrollText :size="16" /> {{ tr("Журнал подключения") }} <ChevronRight
+          ><div class="settings-links"><button class="text-row" @click="page = 'updates'"><RefreshCw :size="16" />{{ language === 'en' ? 'Updates' : 'Обновление' }}<ChevronRight :size="15" /></button><button class="text-row" :aria-label="tr('Журнал подключения')" @click="page = 'logs'">
+            <ScrollText :size="16" /> {{ language === 'en' ? 'Log' : 'Журнал' }} <ChevronRight
               :size="15"
             />
-          </button>
+          </button></div>
         </template>
         <template v-if="page === 'servers'"
           ><div class="server-list">

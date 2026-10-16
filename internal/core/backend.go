@@ -460,6 +460,12 @@ func (b *Backend) StartProxy(req StartRequest) error {
 
 	ruleCacheDir := filepath.Join(b.store.RuntimeDir(), "cache", "sudoku-rules")
 	coreEnv := baseCoreEnvironment(coreLogLevel, trafficStatsFile, ruleCacheDir)
+	componentEnv, componentErr := b.componentEnvironment(protocolOf(nodeCopy))
+	if componentErr != nil {
+		b.opMu.Unlock()
+		return componentErr
+	}
+	coreEnv = append(coreEnv, componentEnv...)
 	if err := ensureDir(ruleCacheDir); err != nil {
 		b.addLog("warn", "rule", fmt.Sprintf("prepare sudoku rule cache directory failed: %v", err))
 	}

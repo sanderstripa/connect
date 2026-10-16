@@ -16,11 +16,21 @@ Connect brings **Sudoku, Xray and experimental Mist** into a clean interface ins
 - Switch between Russian and English in the settings title bar; your language is saved immediately.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
 
-Install **Connect-Setup.exe**, add your own connection, then select its protocol and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.
+Install **Connect-Setup.exe**, add your own connection, then select a saved profile through the connection card and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.
 
 Sudoku ↔ Xray switching retains TUN, DNS and routes when server addresses are IPv4 and the local port is shared. The new core is checked with real HTTP traffic; failure restores the previous profile. Domain names, IPv6, different ports and Mist use a full restart.
 
 Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles are stored in `%APPDATA%\connect-app`.
+
+## Updates and rollback
+
+Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku and Mist have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
+
+Downloads require GitHub-published SHA-256 digests. Components are installed into immutable per-user slots in `%APPDATA%\connect-components`, shared by the desktop app and Chrome helper. The selected version takes effect on the next connection. Local rollback restores the previous files without downloading them again, including after restarting Connect. Component selections survive application updates.
+
+Application updates launch the normal Windows installer after Connect closes. Installed copies cache their current installer for offline rollback. Older published versions can also be selected after a release check when no local backup exists. Disable the Connect extension on `chrome://extensions` while replacing the application, then reload and re-enable it after installation.
+
+Xray and Sudoku are checked against their upstream releases. Geo includes both [GeoIP and GeoSite databases](https://github.com/Loyalsoldier/v2ray-rules-dat). Mist uses Connect release packages containing its compatible SOCKS adapter; ordinary upstream Mist executables are not interchangeable. Missing or unverifiable version information is shown as a file hash rather than a guessed release number.
 
 ## Chrome
 
@@ -56,7 +66,7 @@ cd ..
 ./scripts/build-installer.ps1 -SkipApp
 ```
 
-Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` and `Connect-Chrome.zip`.
+Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` `Connect-Chrome.zip` and the updater asset `Connect-Mist-windows-amd64.zip`.
 
 Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Mist builds from included sources; Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
 

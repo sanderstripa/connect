@@ -46,6 +46,7 @@ func (c *networkClient) call(method string, args []any, result any) error {
 
 // Explicitly restrict the privileged endpoint to the application API.
 var networkMethods = map[string]bool{
+	"GetUpdateStatus": true, "UpdateComponent": true, "RollbackComponent": true,
 	"GetConfig": true, "SaveConfig": true, "SetRoutingMode": true, "GetState": true,
 	"StartProxy": true, "StopProxy": true, "RestartProxy": true, "UpsertNode": true,
 	"DeleteNode": true, "SetActiveNode": true, "SwitchNode": true, "ImportShortLink": true,
