@@ -117,3 +117,4 @@
 .app-shell .page-progress { position: absolute; inset: 54px 0 auto; margin: 0; z-index: 4; }
 @media(max-height:620px) { .app-shell .page-progress { top: 48px; } }
 @media(max-height:560px) { .app-shell .page-progress { top: 44px; } }
+.app-shell .settings-icon { display: inline-flex; width: 24px; height: 24px; pointer-events: none; }

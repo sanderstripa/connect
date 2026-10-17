@@ -7,7 +7,7 @@ info:
   description: "Connect VPN for Windows"
   copyright: "(c) 2026, SUDOKU-ASCII"
   comments: "Connect"
-  version: "0.1.9"
+  version: "0.1.10"
 
 dev_mode:
   root_path: .

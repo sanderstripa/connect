@@ -9,7 +9,7 @@ Connect brings **Sudoku, Xray, AmneziaWG and experimental Mist** into a clean in
 
 ## Interface
 
-The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENTATION.md) while preserving Connect's original light/dark palette, Montserrat, native window size and home layout. Theme and RU/EN preferences are inside Settings → Appearance. Shared controls provide contrasting primary actions, neutral secondary actions, keyboard focus rings and reduced-motion support. The approved settings gear #8 remains pending its original source; the existing entry icon is retained.
+The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENTATION.md) while preserving Connect's original light/dark palette, Montserrat, native window size and home layout. Theme and RU/EN preferences are inside Settings → Appearance. Shared controls provide contrasting primary actions, neutral secondary actions, keyboard focus rings and reduced-motion support. The settings entry uses the exact approved [gear #8](docs/assets/CONNECT-settings-08.svg), with no background tile.
 
 ## Windows
 

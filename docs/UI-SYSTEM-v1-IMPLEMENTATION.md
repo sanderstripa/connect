@@ -28,7 +28,7 @@ The existing home screen and native header composition stay intact. Language pre
 
 ## Approved gear #8
 
-The reference branch contains the specification but no original ten-icon sheet, raster or approved SVG for gear #8. No such asset was available in the project references. The existing CONNECT settings-entry icon is retained with no background; it is not represented as the approved gear and is not replaced with an invented alternative. Exact gear replacement remains pending its original approved visual.
+The settings entry uses the exact approved `docs/assets/CONNECT-settings-08.svg` from the `connect-ui-system-v1-reference` branch. The original SVG geometry, viewBox, 24px dimensions and currentColor fills are preserved. There is no background tile in either theme or on hover. No alternative gear is used.
 
 ## Verification limits
 

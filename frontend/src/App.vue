@@ -10,7 +10,6 @@ import {
 import { Window, Events } from "@wailsio/runtime";
 import {
   Power,
-  Settings2,
   Plus,
   X,
   Minus,
@@ -35,6 +34,7 @@ import { backendApi as api } from "./api";
 import type { AppConfig, RuntimeState } from "./types";
 import ModeSelect from "./ModeSelect.vue";
 import UpdatesPanel from "./UpdatesPanel.vue";
+import settingsIcon from "../../docs/assets/CONNECT-settings-08.svg?raw";
 const draft = ref<AppConfig>();
 const config = ref<AppConfig>(),
   state = ref<RuntimeState>();
@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
             :aria-label="tr('Настройки')"
             @click="openSettings"
           >
-            <Settings2 :size="19" />
+            <span class="settings-icon" aria-hidden="true" v-html="settingsIcon" />
           </button>
         </div>
         <section class="connection">
