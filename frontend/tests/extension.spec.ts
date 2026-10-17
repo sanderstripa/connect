@@ -19,7 +19,7 @@ async function setup(page:Page,{empty=false,failed=false}={}){
    if(m.action==='disconnect'){state.connected=false;state.desired=false;}
    if(m.action==='delete'){state.nodes=state.nodes.filter((n:any)=>n.id!==m.nodeId);if(state.activeNodeId===m.nodeId){state.connected=false;state.desired=false;}}
    if(m.action==='import'){
-    const p=m.link.startsWith('sudoku://')?'sudoku':m.link.startsWith('vless://')?'xray':m.link.startsWith('{')?'mist':'';
+    const p=m.link.startsWith('[Interface]')?'amneziawg':m.link.startsWith('sudoku://')?'sudoku':m.link.startsWith('vless://')?'xray':m.link.startsWith('{')?'mist':'';
     if(!p){state.ok=false;state.error='Некорректная ссылка';}else state.nodes.push({id:'new-'+state.nodes.length,name:m.name||(p==='sudoku'?'203.0.113.20':'Мой '+p),protocol:p});
    }
    const copy=JSON.parse(JSON.stringify(state));for(const fn of listeners)fn({view:{newValue:copy}},'local');return copy;
@@ -67,4 +67,11 @@ test('language and theme persist while inline editor keeps its draft and alignme
  const delta=await page.evaluate(()=>{const a=document.querySelector('#back')!.getBoundingClientRect(),b=document.querySelector('#editor-title')!.getBoundingClientRect();return Math.abs(a.y+a.height/2-b.y-b.height/2)});expect(delta).toBeLessThan(1);
  expect(await page.locator('#link').evaluate(e=>getComputedStyle(e).outlineStyle)).toBe('none');
  await page.locator('#language').click();await page.reload();await expect(page.locator('html')).toHaveAttribute('lang','en');await expect(page.locator('html')).toHaveAttribute('data-theme',theme!);await assertFits(page);
+});
+
+test('AmneziaWG file import detects protocol and creates an inline toggle',async({page})=>{
+ await setup(page,{empty:true});await page.locator('#add').click();
+ await page.locator('#config-file').setInputFiles({name:'AWG-test.conf',mimeType:'text/plain',buffer:Buffer.from('[Interface]\nAddress = 10.8.0.2/32\n[Peer]\nEndpoint = example.test:51820')});
+ await expect(page.locator('#detected')).toContainText('AmneziaWG');await expect(page.locator('#name')).toHaveValue('AWG-test');await page.locator('#save').click();
+ await expect(page.locator('#profiles')).toContainText('AmneziaWG');await page.getByRole('switch',{name:/AmneziaWG — AWG-test/}).click();await expect(page.getByRole('switch',{name:/AmneziaWG — AWG-test/})).toHaveAttribute('aria-checked','true');await assertFits(page);
 });

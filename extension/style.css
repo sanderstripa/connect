@@ -6,3 +6,5 @@
 :root[data-theme=light]{--bg:#f7f7f5;--text:#171a1d;--muted:#80858b;--line:#dadbdc;--hover:#eee;--inverse:#fff;--green:#269e6c;color-scheme:light}
 :root[data-theme=dark]{--bg:#0c0c0d;--text:#ededee;--muted:#81858c;--line:#303236;--hover:#1a1b1e;--inverse:#121315;--green:#32b580;color-scheme:dark}
 header{justify-content:space-between}.tools{display:flex;align-items:center;gap:12px}.tools button{font-size:10px;padding:4px}.toggle{width:36px;height:20px;border:1px solid var(--line);border-radius:12px;padding:3px!important}.toggle span{display:block;width:12px;height:12px;background:var(--muted);border-radius:50%;transition:transform .15s}.toggle[aria-checked=true] span{transform:translateX(15px);background:var(--text)}.back{display:flex;align-items:center;justify-content:center;height:24px;line-height:1}input:focus-visible,textarea:focus-visible{outline:none;border-color:var(--muted)}#error{color:var(--muted)}
+
+.file-picker{display:inline-block;cursor:pointer;color:var(--muted);margin:6px 0;font-size:10px;text-decoration:underline;text-underline-offset:3px}

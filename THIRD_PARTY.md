@@ -15,3 +15,4 @@ Full application source, including the Sudoku core patches and reproducible buil
 * Xray-core 26.3.27 — https://github.com/XTLS/Xray-core ; MPL-2.0. Official license is bundled with the core.
 * MIST — https://github.com/sanderstripa/mist ; source snapshot and Connect modifications in engines/mist. Included at the repository owner's request.
 * WireGuard netstack — MIT; gVisor — Apache-2.0; quic-go/connect-ip-go — MIT. Versions are in engines/mist/go.mod and go.sum.
+* AmneziaWG Go v3.1.20260828 — https://github.com/amnezia-vpn/amneziawg-go ; MIT. License is bundled as AmneziaWG-LICENSE.txt. The gVisor userspace stack is Apache-2.0; Google btree and Go networking libraries are BSD-3-Clause. Dependency versions are in go.mod/go.sum.

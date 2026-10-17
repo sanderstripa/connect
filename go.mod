@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/SUDOKU-ASCII/sudoku v0.5.1
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
 	github.com/shirou/gopsutil/v4 v4.26.2
 	golang.org/x/net v0.51.0
 	golang.org/x/sys v0.41.0
@@ -22,6 +23,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.7.0 // indirect
 	github.com/go-git/go-git/v5 v5.16.4 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/google/btree v1.1.3 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -33,7 +35,10 @@ require (
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	golang.org/x/time v0.9.0 // indirect
+	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gvisor.dev/gvisor v0.0.0-20231202080848-1f7806d17489 // indirect
 )
 
 require (

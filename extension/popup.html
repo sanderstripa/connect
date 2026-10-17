@@ -14,6 +14,7 @@
 <label id="link-label" for="link">Ссылка или конфигурация</label>
 <textarea id="link" rows="4" spellcheck="false" autocomplete="off" placeholder="sudoku://, vless:// или JSON Mist" required maxlength="1048576"></textarea>
 <p id="detected" class="detected" aria-live="polite"></p>
+<label class="file-picker" id="file-label" for="config-file">Открыть .conf</label><input id="config-file" style="display:none" type="file" accept=".conf,text/plain">
 <label id="name-label" for="name">Название <span class="muted">· необязательно</span></label>
 <input id="name" placeholder="Мой сервер" maxlength="120" autocomplete="off">
 <button id="save" class="primary" type="submit">Добавить</button>

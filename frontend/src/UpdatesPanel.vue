@@ -6,10 +6,10 @@ type Component={id:string;installed:string;build?:string;previous:string;release
 const props=defineProps<{language:string;running:boolean}>();
 const en=computed(()=>props.language==='en');
 const text=(ru:string,eng:string)=>en.value?eng:ru;
-const ids=['app','xray','geo','sudoku','mist'];
+const ids=['app','xray','geo','sudoku','mist','amneziawg'];
 const items=ref<Record<string,Component>>({}),selected=ref<Record<string,string>>({}),working=ref(''),notice=ref(''),problem=ref('');
 const previews=ref(localStorage.getItem('connect-update-preview')!=='false');
-const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',mist:'Mist'}[id]||id);
+const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',mist:'Mist',amneziawg:'AmneziaWG'}[id]||id);
 const sameVersion=(id:string)=>!!selected.value[id]&&selected.value[id].replace(/^v/,'')===items.value[id]?.installed.replace(/^v/,'');
 const call=(method:string,...args:unknown[])=>Call.ByName('main.App.'+method,...args);
 async function status(id:string,check:boolean){const item=await call('GetUpdateStatus',id,check,previews.value) as Component;items.value[id]=item;selected.value[id]=item.releases?.[0]?.version||'';}

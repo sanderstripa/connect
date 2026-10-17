@@ -13,3 +13,4 @@
 - Icon source: user-provided VPN.ico.
 
 Release assets are unsigned. SHA256 checksums accompany the release.
+- AmneziaWG: official amnezia-vpn/amneziawg-go/v3 v3.1.20260828, commit b5928efb6ca19f0153958460c3d141f04abc5c2e. Connect builds cmd/awg-client with a loopback SOCKS5 adapter and a data-only configuration parser. Versions and checksums are pinned in go.mod/go.sum.

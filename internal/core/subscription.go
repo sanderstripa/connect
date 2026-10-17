@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/awgconfig"
 	"io"
 	"net"
 	"net/http"
@@ -16,7 +17,13 @@ import (
 
 // Fetches only the subscription the user explicitly pastes; never executes YAML.
 func ParseImportLink(link string) (*NodeConfig, error) {
-	if strings.HasPrefix(link, "vless://") || strings.HasPrefix(link, "trojan://") || strings.HasPrefix(link, "vmess://") || strings.HasPrefix(link, "mist://") || strings.HasPrefix(link, "{") { return ParseEngineLink(link) }
+	link = strings.TrimSpace(link)
+	if awgconfig.IsConfig(link) {
+		return ParseEngineLink(link)
+	}
+	if strings.HasPrefix(link, "vless://") || strings.HasPrefix(link, "trojan://") || strings.HasPrefix(link, "vmess://") || strings.HasPrefix(link, "mist://") || strings.HasPrefix(link, "{") {
+		return ParseEngineLink(link)
+	}
 	if strings.HasPrefix(link, "sudoku://") {
 		return ParseShortLink(link)
 	}

@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-const AppVersion = "0.1.7"
+const AppVersion = "0.1.8"
 
 var operations sync.Mutex
 
@@ -83,9 +83,10 @@ type source struct {
 }
 
 var sources = map[string]source{
-	"app":    {"sanderstripa/connect", "Connect-Setup.exe", nil},
-	"xray":   {"XTLS/Xray-core", "Xray-windows-64.zip", []string{"xray.exe"}},
-	"sudoku": {"SUDOKU-ASCII/sudoku", "sudoku-windows-amd64.zip", []string{"sudoku.exe"}},
+	"amneziawg": {"sanderstripa/connect", "Connect-AmneziaWG-windows-amd64.zip", []string{"awg-client.exe"}},
+	"app":       {"sanderstripa/connect", "Connect-Setup.exe", nil},
+	"xray":      {"XTLS/Xray-core", "Xray-windows-64.zip", []string{"xray.exe"}},
+	"sudoku":    {"SUDOKU-ASCII/sudoku", "sudoku-windows-amd64.zip", []string{"sudoku.exe"}},
 	// Upstream Mist binaries do not implement Connect's SOCKS adapter.
 	"mist": {"sanderstripa/connect", "Connect-Mist-windows-amd64.zip", []string{"mist-client.exe"}},
 	"geo":  {"Loyalsoldier/v2ray-rules-dat", "", []string{"geoip.dat", "geosite.dat"}},

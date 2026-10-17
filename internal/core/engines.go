@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/awgconfig"
 	"gopkg.in/yaml.v3"
 	"net"
 	"net/url"
@@ -20,6 +21,9 @@ func protocolOf(n NodeConfig) string {
 	return n.Protocol
 }
 func engineName(n NodeConfig) string {
+	if protocolOf(n) == "amneziawg" {
+		return "awg-client"
+	}
 	if protocolOf(n) == "mist" {
 		return "mist-client"
 	}
@@ -29,7 +33,7 @@ func engineArgs(n NodeConfig, config string, port int) []string {
 	switch protocolOf(n) {
 	case "xray":
 		return []string{"run", "-config", config}
-	case "mist":
+	case "mist", "amneziawg":
 		return []string{"-config", config, "-socks", fmt.Sprintf("127.0.0.1:%d", port)}
 	}
 	return []string{"-c", config}
@@ -47,6 +51,15 @@ func decodeBase64(s string) ([]byte, error) {
 func ParseEngineLink(link string) (*NodeConfig, error) {
 	if len(link) > 1024*1024 {
 		return nil, fmt.Errorf("конфигурация слишком большая: ограничение 1 МБ")
+	}
+	if awgconfig.IsConfig(link) {
+		cfg, err := awgconfig.Parse(link)
+		if err != nil {
+			return nil, err
+		}
+		raw, _ := json.Marshal(cfg)
+		host, _, _ := net.SplitHostPort(cfg.Peer["Endpoint"])
+		return &NodeConfig{Protocol: "amneziawg", Name: "AmneziaWG · " + host, ServerAddress: cfg.Peer["Endpoint"], EngineConfig: string(raw), Enabled: true}, nil
 	}
 	if strings.HasPrefix(link, "mist://") {
 		b, e := decodeBase64(strings.TrimPrefix(link, "mist://"))

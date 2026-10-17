@@ -11,7 +11,12 @@ if(-not $connectSudokuVersion){throw 'Cannot identify Sudoku version'}
 $connectManifest['sudoku.exe']=@{version=$connectSudokuVersion;sha256=(Get-FileHash (Join-Path $connectBin 'sudoku.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
 $connectMist=& (Join-Path $connectBin 'mist-client.exe') -version
 if($LASTEXITCODE -ne 0 -or -not $connectMist){throw 'Cannot identify Mist version'}
-$connectManifest['mist-client.exe']=@{version='v0.1.7';build=$connectMist;sha256=(Get-FileHash (Join-Path $connectBin 'mist-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$connectManifest['mist-client.exe']=@{version='v0.1.8';build=$connectMist;sha256=(Get-FileHash (Join-Path $connectBin 'mist-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$connectAWG=& (Join-Path $connectBin 'awg-client.exe') -version
+if($LASTEXITCODE -ne 0 -or -not $connectAWG){throw 'Cannot identify AmneziaWG version'}
+$connectManifest['awg-client.exe']=@{version='v0.1.8';build=$connectAWG;sha256=(Get-FileHash (Join-Path $connectBin 'awg-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
 $connectManifest | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $connectBin 'components.json') -Encoding utf8
 New-Item -ItemType Directory -Force (Join-Path $connectRoot 'build/bin') | Out-Null
 Compress-Archive -LiteralPath (Join-Path $connectBin 'mist-client.exe') -DestinationPath (Join-Path $connectRoot 'build/bin/Connect-Mist-windows-amd64.zip') -Force
+
+Compress-Archive -LiteralPath (Join-Path $connectBin 'awg-client.exe') -DestinationPath (Join-Path $connectRoot 'build/bin/Connect-AmneziaWG-windows-amd64.zip') -Force

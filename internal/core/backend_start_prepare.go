@@ -69,6 +69,9 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 	if protocolOf(plan.node) == "mist" && runtimeConfig.Routing.ProxyMode != "global" {
 		return proxyStartPlan{}, fmt.Errorf("Mist: выберите режим Весь трафик")
 	}
+	if protocolOf(plan.node) == "amneziawg" && (runtimeConfig.Routing.ProxyMode != "global" || runtimeConfig.Routing.CustomRulesEnabled) {
+		return proxyStartPlan{}, fmt.Errorf("AmneziaWG: выберите режим Весь трафик / select All traffic")
+	}
 	sudokuConfigPath, hevConfigPath, localPort, err := writeRuntimeConfigs(b.store, runtimeConfig, plan.node, b.pacURL)
 	if err != nil {
 		b.setStartErrorLocked(err)
@@ -92,6 +95,9 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 	componentFile := componentName + ".exe"
 	if componentName == "mist" {
 		componentFile = "mist-client.exe"
+	}
+	if componentName == "amneziawg" {
+		componentFile = "awg-client.exe"
 	}
 	plan.sudokuBinary, err = b.resolveComponentLocked(componentName, componentFile, plan.sudokuBinary)
 	if err != nil {

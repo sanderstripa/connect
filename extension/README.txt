@@ -20,3 +20,5 @@ proxy set until you disconnect, preventing a silent return to direct browsing.
 The ZIP is for manual loading after installing the native helper.
 Chrome does not allow an ordinary Windows installer to silently install
 an unpacked extension. Chrome Web Store publication is not part of this build.
+
+AmneziaWG: paste a complete .conf configuration or use Open .conf. Complete self-hosted vpn:// profiles are supported; service keys requiring Amnezia API enrollment are not. AWG uses an independent user-space SOCKS helper, without changing system routes.

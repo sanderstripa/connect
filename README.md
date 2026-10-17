@@ -5,13 +5,13 @@
 <p align="center">A minimal VPN for Windows, with an independent Chrome extension.</p>
 <p align="center"><a href="https://github.com/sanderstripa/connect/releases">Download for Windows</a></p>
 
-Connect brings **Sudoku, Xray and experimental Mist** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
+Connect brings **Sudoku, Xray, AmneziaWG and experimental Mist** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
 
 ## Windows
 
 - Connect with one button and switch between saved protocol profiles.
 - Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
-- Import Sudoku links/subscriptions, VLESS, VMess, Trojan or a Mist client configuration.
+- Import Sudoku links/subscriptions, VLESS, VMess, Trojan, a Mist client configuration or an AmneziaWG `.conf` profile.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
 - Switch between Russian and English in the settings title bar; your language is saved immediately.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
@@ -24,13 +24,23 @@ Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles
 
 ## Updates and rollback
 
-Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku and Mist have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
+Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku, Mist and AmneziaWG have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
 
 Downloads require GitHub-published SHA-256 digests. Components are installed into immutable per-user slots in `%APPDATA%\connect-components`, shared by the desktop app and Chrome helper. The selected version takes effect on the next connection. Local rollback restores the previous files without downloading them again, including after restarting Connect. Component selections survive application updates.
 
 Application updates launch the normal Windows installer after Connect closes. Installed copies cache their current installer for offline rollback. Older published versions can also be selected after a release check when no local backup exists. Disable the Connect extension on `chrome://extensions` while replacing the application, then reload and re-enable it after installation.
 
 Xray and Sudoku are checked against their upstream releases. Geo includes both [GeoIP and GeoSite databases](https://github.com/Loyalsoldier/v2ray-rules-dat). Mist uses Connect release packages containing its compatible SOCKS adapter; ordinary upstream Mist executables are not interchangeable. Missing or unverifiable version information is shown as a file hash rather than a guessed release number.
+
+## AmneziaWG
+
+Click **Add connection**, then paste the contents of an AmneziaWG `.conf` file or choose **Open .conf**. This works in both Windows and Chrome. Complete self-hosted `vpn://` profiles and `awg://` Base64-encoded configurations are also accepted. Amnezia service/subscription keys that require their API are not supported: export a complete AmneziaWG `.conf` file instead. No server keys are bundled or sent to an enrollment service.
+
+The pinned official AmneziaWG 3.1 userspace core preserves AWG 1/2/3 obfuscation fields (Jc/Jmin/Jmax, S1–S4, H1–H4, I1–I5 and AWG 3 options). The adapter supports one peer, TCP and UDP SOCKS traffic, and tunnel DNS. If DNS is absent, 1.1.1.1 is used through AWG, with no direct DNS fallback. AllowedIPs are respected. Imported shell hooks and unknown fields are rejected. Local ListenPort is allocated independently for desktop and Chrome.
+
+Use **All traffic** with custom bypass rules disabled in Windows. This release does not implement AmneziaWG split routing. Chrome keeps its independent browser-only scope. Settings → Updates includes verified Connect-compatible AmneziaWG packages and local rollback; raw upstream tunnel executables cannot replace this SOCKS adapter.
+
+Transport tests use isolated loopback AWG peers with real encryption, TCP, UDP and tunnel DNS for AWG 1, 2 and 3 parameter sets. No user VPN server, production route or system installation is changed by these tests. A live external AmneziaWG server has not been tested.
 
 ## Chrome
 
@@ -47,7 +57,7 @@ The extension handles proxy-compatible Chrome traffic, rather than whole-device 
 Automated checks cover Windows core and installer tests, link import, browser isolation, extension lifecycle and UI behavior. Local integration tests pass real HTTP through Xray/xhttp and Sudoku, exercise switching and rollback, and verify that Windows proxy settings remain unchanged. The Mist SOCKS adapter has TCP/UDP tests; an external Mist Edge connection and TUN operation in the user's network still need separate validation.
 
 - Mist is experimental. Its sources are pinned to revision `d4e7dacf22f9c3f4c5d762883544c102da0c6b49` of `mist-hardening-32`.
-- Windows split tunneling is available for Sudoku and Xray. Mist uses all-traffic mode; Chrome currently has no configurable exclusions.
+- Windows split tunneling is available for Sudoku and Xray. Mist and AmneziaWG use all-traffic mode; Chrome currently has no configurable exclusions.
 - One Chrome profile can be active per Windows user. Protocol cores update with the application.
 - Executables are unsigned. Local test timings do not guarantee remote connection speed.
 

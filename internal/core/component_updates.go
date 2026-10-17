@@ -27,7 +27,7 @@ func (b *Backend) updateManagerLocked() (*updates.Manager, error) {
 	if exe, e := os.Executable(); e == nil {
 		base["app"] = updates.Baseline{Version: updates.AppVersion, Executable: exe, Files: map[string]string{"Connect-Setup.exe": filepath.Join(filepath.Dir(exe), "Uninstall.exe")}}
 	}
-	for id, name := range map[string]string{"sudoku": "sudoku.exe", "xray": "xray.exe", "mist": "mist-client.exe"} {
+	for id, name := range map[string]string{"sudoku": "sudoku.exe", "xray": "xray.exe", "mist": "mist-client.exe", "amneziawg": "awg-client.exe"} {
 		file := filepath.Join(dir, name)
 		if id == "sudoku" {
 			file = b.cfg.Core.SudokuBinary

@@ -1,9 +1,16 @@
-Connect 0.1.7 · Windows 10/11 x64
+Connect 0.1.8 · Windows 10/11 x64
 
-Update and rollback actions now start immediately when clicked. Removed browser confirmation dialogs from all component and application updates.
+### AmneziaWG
 
-Component updates take effect on the next connection. Application updates close Connect and launch the Windows installer; Windows may still request administrator permission. Disable the Chrome extension while replacing the application, then re-enable it. Profiles are preserved.
+- Added an AmneziaWG connection type to Windows and the independent Chrome extension. Profiles appear after import and use the existing connection controls.
+- Import a .conf file, paste its contents, or use a complete self-hosted vpn:// key. awg:// Base64 configuration links are also accepted. Service keys requiring Amnezia API enrollment need to be exported as a complete AmneziaWG .conf profile first.
+- Official amneziawg-go v3.1.20260828, pinned to b5928efb6ca19f0153958460c3d141f04abc5c2e. Preserves AWG 1/2/3 obfuscation fields, including AWG 3 header protection. Supports SOCKS TCP/UDP and DNS through the AWG tunnel. No direct DNS fallback.
+- Settings → Updates includes verified Connect-compatible AmneziaWG packages and rollback. The separate AmneziaWG ZIP is an updater asset, not the application installer.
 
-The update interface test rejects confirmation dialogs and checks installation and rollback. The release workflow also runs core, native helper, extension and interface checks.
+Windows AmneziaWG currently requires All traffic mode with custom bypass rules disabled. One peer per profile. AllowedIPs are respected. Shell hooks and unknown configuration fields are rejected. Desktop and Chrome allocate independent local ports; keys remain in local profiles. No credentials are bundled.
 
-Mist remains experimental. No connectivity fixes are included. Executables are unsigned; no server credentials are bundled.
+### Validation
+
+Real encrypted loopback peers exercised AWG 1, 2 and 3 settings, TCP, UDP and tunneled DNS. Tests cover import, share decoding, configuration validation, runtime generation, Windows/Chrome file selection and profile toggles. The release workflow also runs existing core, native helper, branding and UI checks. No live external AmneziaWG server or workstation TUN changes were used for validation.
+
+Install Connect-Setup.exe with Connect closed and its Chrome extension disabled; re-enable/reload the extension afterward. Existing profiles are preserved. Executables are unsigned. Mist remains experimental; no claim is made about fixing previous intermittent connectivity reports.

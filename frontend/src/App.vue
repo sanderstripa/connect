@@ -108,13 +108,13 @@ const english: Record<string,string> = {
   "Скопировать журнал": "Copy log",
   "НОВОЕ СОЕДИНЕНИЕ": "NEW CONNECTION",
   "Закрыть": "Close",
-  "Вставьте ссылку сервера или клиентскую конфигурацию Mist.": "Paste a server link or Mist client configuration.",
+  "Вставьте ссылку сервера или конфигурацию Mist / AmneziaWG (.conf).": "Paste a server link or Mist / AmneziaWG (.conf) configuration.",
   "Ссылка соединения": "Connection link",
   "Название": "Name",
   "· необязательно": "· optional",
   "Мой сервер": "My server",
-  "sudoku://, vless://, vmess://, trojan:// или JSON Mist": "sudoku://, vless://, vmess://, trojan:// or Mist JSON",
-  "Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON": "Sudoku links and subscriptions · Xray with xhttp · Mist JSON",
+  "sudoku://, vless://, vmess://, trojan://, JSON Mist или .conf AmneziaWG": "sudoku://, vless://, vmess://, trojan:// Mist JSON or AmneziaWG .conf",
+  "Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON · AmneziaWG .conf": "Sudoku links and subscriptions · Xray with xhttp · Mist JSON · AmneziaWG .conf",
   "Добавление…": "Adding…",
   "Сервер добавлен": "Server added",
   "Подписка обновлена": "Subscription updated",
@@ -200,6 +200,13 @@ async function importLink() {
     name.value = "";
     message.value = "Сервер добавлен";
   });
+}
+async function readConnectionFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (file.size > 1048576) { error.value = language.value === 'en' ? 'Configuration exceeds 1 MB' : 'Конфигурация больше 1 МБ'; return; }
+  try { link.value = await file.text(); if (!name.value) name.value = file.name.replace(/\.conf$/i, ''); }
+  catch { error.value = language.value === 'en' ? 'Cannot read configuration' : 'Не удалось прочитать конфигурацию'; }
 }
 async function select(id: string) {
   await action(async () => {
@@ -420,7 +427,7 @@ onBeforeUnmount(() => {
         <button v-else class="server-card" @click="importing = true">
           <Plus :size="22" /><span class="server-details"
             ><strong> {{ tr("Добавить соединение") }} </strong
-            ><small>Sudoku · Xray · Mist</small></span
+            ><small>Sudoku · Xray · Mist · AmneziaWG</small></span
           ><ChevronRight :size="17" />
         </button>
         <div class="traffic">
@@ -498,7 +505,7 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <section class="settings-section">
-            <h2><GitBranch :size="17" /> {{ tr("РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ") }} </h2><p v-if="selectedProtocol === 'mist'" class="hint"> {{ tr("Для Mist выберите Весь трафик.") }} </p>
+            <h2><GitBranch :size="17" /> {{ tr("РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ") }} </h2><p v-if="selectedProtocol === 'amneziawg'" class="hint">{{ language === 'en' ? 'For AmneziaWG, select All traffic.' : 'Для AmneziaWG выберите Весь трафик.' }}</p><p v-if="selectedProtocol === 'mist'" class="hint"> {{ tr("Для Mist выберите Весь трафик.") }} </p>
             <fieldset :disabled="busy">
               <label class="field-label" for="routing"> {{ tr("Режим") }} </label
               ><ModeSelect v-model="split" :disabled="busy" :language="language" /><textarea
@@ -620,19 +627,19 @@ onBeforeUnmount(() => {
             <X :size="18" />
           </button>
         </div>
-        <p class="muted"> {{ tr("Вставьте ссылку сервера или клиентскую конфигурацию Mist.") }} </p>
+        <p class="muted"> {{ tr("Вставьте ссылку сервера или конфигурацию Mist / AmneziaWG (.conf).") }} </p>
         <form @submit.prevent="importLink">
           <label class="field-label" for="link"> {{ tr("Ссылка соединения") }} </label
           ><textarea
             id="link"
             v-model="link"
             autofocus
-            :placeholder="tr('sudoku://, vless://, vmess://, trojan:// или JSON Mist')"
+            :placeholder="tr('sudoku://, vless://, vmess://, trojan://, JSON Mist или .conf AmneziaWG')"
             rows="4"
             required
             :disabled="busy"
             spellcheck="false"
-          /><label class="field-label" for="name"
+          /><label class="field-label file-picker">{{ language === 'en' ? 'Or open a .conf file' : 'Или открыть файл .conf' }}<input type="file" style="display:none" accept=".conf,text/plain" :disabled="busy" @change="readConnectionFile" /></label><label class="field-label" for="name"
             > {{ tr("Название") }} <span class="muted"> {{ tr("· необязательно") }} </span></label
           ><input
             id="name"
@@ -641,7 +648,7 @@ onBeforeUnmount(() => {
             maxlength="80"
             :disabled="busy"
           />
-          <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON") }} </p>
+          <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON · AmneziaWG .conf") }} </p>
           <div v-if="error" class="notice error" role="alert">{{ error }}</div>
           <button class="primary" :disabled="busy || !link.trim()">
             {{ busy ? tr("Добавление…") : tr("Добавить соединение") }}
