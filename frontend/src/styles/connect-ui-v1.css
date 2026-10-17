@@ -1,0 +1,119 @@
+/* CONNECT UI System v1.0. Metrics only: the existing palette, font,
+   titlebar, home composition and native window dimensions remain authoritative. */
+.app-shell {
+  --ui-control: 36px;
+  --ui-radius: 8px;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-6: 24px;
+  --ui-body: 13px;
+  --ui-label: 12px;
+  --ui-help: 11px;
+}
+.app-shell button,
+.app-shell input,
+.app-shell textarea,
+.app-shell select {
+  transition: background-color 140ms, border-color 140ms, opacity 140ms;
+}
+.app-shell :is(button,input,textarea,select):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.app-shell button:active:not(:disabled) { opacity: .75; }
+.app-shell .primary,
+.app-shell .secondary {
+  min-height: var(--ui-control);
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.app-shell .primary { background: var(--accent); color: var(--inverse); border-color: var(--accent); }
+.app-shell .secondary { background: var(--hover); color: var(--text); }
+.app-shell .secondary:hover:not(:disabled) { border-color: var(--muted); }
+.app-shell input:not([type=checkbox]):not([type=range]):not([type=file]),
+.app-shell textarea,
+.app-shell select,
+.app-shell .mode-trigger {
+  min-height: var(--ui-control);
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius);
+  color: var(--text);
+  background: var(--bg);
+  font-size: var(--ui-body);
+  padding: 8px 12px;
+}
+.app-shell :is(select,.mode-trigger) { height: var(--ui-control); padding-block: 0; }
+.app-shell textarea { line-height: 1.6; }
+.app-shell .field-label { font-size: var(--ui-label); margin-bottom: 8px; }
+.app-shell .hint { font-size: var(--ui-help); }
+.app-shell .mode-options { border-radius: var(--ui-radius); padding: 4px; }
+.app-shell .mode-options button { font-size: 13px; border-radius: var(--ui-radius); min-height: 36px; }
+.app-shell .theme-picker { gap: 4px; }
+.app-shell .theme-picker button {
+  min-height: 32px; border-radius: var(--ui-radius); font-size: 11px;
+  border: 1px solid var(--line); background: var(--bg); padding: 4px;
+}
+.app-shell .theme-picker button.selected { background: var(--hover); border-color: var(--muted); }
+.appearance-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.app-shell .appearance-heading h2 { margin-bottom: 0; }
+.language-picker { display: flex; gap: 4px; }
+.language-picker button {
+  min-width: 32px; height: 28px; font-size: 11px; border: 1px solid var(--line);
+  border-radius: var(--ui-radius); color: var(--muted); padding: 4px;
+}
+.language-picker button[aria-pressed=true] { color: var(--text); background: var(--hover); }
+.app-shell .toggle-row { gap: 12px; min-height: 32px; }
+.app-shell .toggle-row input { width: 40px; height: 23px; margin: 0; }
+.app-shell .switch { width: 40px; height: 23px; background: var(--hover); }
+.app-shell .switch:after { width: 17px; height: 17px; margin: 2px; box-shadow: none; }
+.app-shell .toggle-row input:checked + .switch { background: var(--text); border-color: var(--text); }
+.app-shell .toggle-row input:checked + .switch:after { transform: translateX(17px); background: var(--bg); }
+.app-shell .toggle-row input:focus-visible + .switch { outline: 2px solid var(--text); outline-offset: 2px; }
+.app-shell .toggle-row input:disabled + .switch { opacity: .4; }
+.app-shell input[type=range] { appearance: none; height: 2px; border: 0; background: var(--line); padding: 0; }
+.app-shell input[type=range]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--text); box-shadow: none; }
+.app-shell .import-modal { border-radius: var(--ui-radius); padding: 24px; }
+.app-shell .import-modal form { margin-top: 16px; }
+.app-shell .import-modal textarea { margin-bottom: 16px; }
+.app-shell .notice { display: flex; gap: 8px; align-items: flex-start; padding: 12px; border-radius: var(--ui-radius); font-size: var(--ui-help); box-shadow: none; }
+.notice-symbol { flex-shrink: 0; font-weight: 600; width: 16px; text-align: center; }
+.app-shell .delete-confirm { gap: 8px; font-size: 11px; }
+.app-shell .delete-confirm button { min-height: 32px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--ui-radius); }
+.app-shell .delete-confirm button:last-child { color: var(--inverse); background: var(--accent); border-color: var(--accent); }
+.ui-select-field { display: block; position: relative; margin-top: 8px; }
+.app-shell select.ui-select { appearance: none; width: 100%; padding-right: 32px; }
+.ui-select-field > svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
+.ui-progress { height: 4px; background: var(--line); overflow: hidden; border-radius: 2px; margin-bottom: 12px; }
+.ui-progress:after { content: ''; display: block; width: 40%; height: 100%; background: var(--text); animation: ui-progress 1.2s ease-in-out infinite alternate; }
+@keyframes ui-progress { to { transform: translateX(150%); } }
+@media(max-height:620px) {
+  /* Preserve CONNECT's compact layout at effective high-DPI viewport sizes. */
+  .app-shell .theme-picker button { min-height: 28px; height: 28px; font-size: 10px; }
+  .app-shell .toggle-row { min-height: 28px; font-size: 10px; }
+  .app-shell .hint { font-size: 10px; }
+  .app-shell .field-label { font-size: 11px; margin-bottom: 4px; }
+  .appearance-heading { margin-bottom: 4px; }
+  .language-picker button { height: 24px; min-width: 28px; font-size: 10px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .app-shell *, .app-shell *:after { animation: none !important; transition: none !important; }
+}
+@media(max-height:560px) {
+  .app-shell .page-settings .settings-section { padding: 4px 0; }
+  .app-shell .page-settings .theme-picker button { min-height: 26px; height: 26px; font-size: 9px; }
+  .app-shell .page-settings .toggle-row { min-height: 24px; }
+  .app-shell .page-settings .hint { font-size: 9px; }
+  .app-shell .page-settings .field-label { font-size: 10px; }
+  .app-shell .page-settings .mode-trigger { min-height: 32px; height: 32px; font-size: 11px; }
+  .app-shell .page-settings .language-picker button { height: 22px; min-width: 28px; }
+}
+.app-shell .page-home .eyebrow-row .icon-button:hover { background: none; }
+.app-shell .page-progress { position: absolute; inset: 54px 0 auto; margin: 0; z-index: 4; }
+@media(max-height:620px) { .app-shell .page-progress { top: 48px; } }
+@media(max-height:560px) { .app-shell .page-progress { top: 44px; } }

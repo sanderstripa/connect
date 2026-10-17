@@ -7,13 +7,17 @@
 
 Connect brings **Sudoku, Xray, AmneziaWG and experimental Mist** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
 
+## Interface
+
+The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENTATION.md) while preserving Connect's original light/dark palette, Montserrat, native window size and home layout. Theme and RU/EN preferences are inside Settings → Appearance. Shared controls provide contrasting primary actions, neutral secondary actions, keyboard focus rings and reduced-motion support. The approved settings gear #8 remains pending its original source; the existing entry icon is retained.
+
 ## Windows
 
 - Connect with one button and switch between saved protocol profiles.
 - Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
 - Import Sudoku links/subscriptions, VLESS, VMess, Trojan, a Mist client configuration or an AmneziaWG `.conf` profile.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
-- Switch between Russian and English in the settings title bar; your language is saved immediately.
+- Switch between Russian and English inside Settings → Appearance; your language is saved immediately.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
 
 Install **Connect-Setup.exe**, add your own connection, then select a saved profile through the connection card and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.

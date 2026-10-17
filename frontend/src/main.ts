@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import './style.css'
+import './styles/connect-ui-v1.css'
 import { Window } from '@wailsio/runtime'
 
 window.addEventListener('keyup', (event) => {

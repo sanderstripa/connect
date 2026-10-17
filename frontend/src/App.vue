@@ -374,7 +374,6 @@ onBeforeUnmount(() => {
     <header class="titlebar">
       <span class="wordmark">CONNECT<span class="wordmark-dot">.</span></span>
       <div class="window-actions">
-        <button v-if="page === 'settings' || page === 'updates'" class="language-button" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'" :disabled="busy" @click="toggleLanguage">{{ language.toUpperCase() }}</button>
         <button :aria-label="tr('Свернуть')" @click="Window.Minimise()">
           <Minus :size="15" /></button
         ><button :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
@@ -384,6 +383,7 @@ onBeforeUnmount(() => {
     </header>
     <div v-if="loading" class="loading"> {{ tr("Загрузка…") }} </div>
     <main v-else :class="'page-' + page">
+      <div v-if="busy" class="ui-progress page-progress" role="progressbar" :aria-label="language === 'en' ? 'Working…' : 'Обработка…'"></div>
       <template v-if="page === 'home'">
         <div class="eyebrow-row">
           <button
@@ -471,7 +471,11 @@ onBeforeUnmount(() => {
         <UpdatesPanel v-if="page === 'updates'" :language="language" :running="running" />
         <template v-if="page === 'settings' && draft">
           <section class="settings-section">
-            <h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>
+            <div class="appearance-heading"><h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>
+              <div class="language-picker" role="group" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'">
+                <button v-for="code in ['ru','en']" :key="code" :aria-pressed="language === code" :disabled="busy" @click="language !== code && toggleLanguage()">{{code.toUpperCase()}}</button>
+              </div>
+            </div>
             <div class="theme-picker">
               <button
                 v-for="t in [
@@ -481,6 +485,7 @@ onBeforeUnmount(() => {
                 ]"
                 :key="t.id"
                 :class="{ selected: theme === t.id }"
+                :aria-pressed="theme === t.id"
                 :disabled="busy"
                 @click="setTheme(t.id)"
               >
@@ -597,7 +602,7 @@ onBeforeUnmount(() => {
         class="notice error"
         role="alert"
       >
-        {{ error || state?.routeSetupError || state?.lastError }}
+        <span class="notice-symbol" aria-hidden="true">!</span><span>{{ error || state?.routeSetupError || state?.lastError }}</span>
       </div>
     </main>
     <footer>
@@ -649,7 +654,7 @@ onBeforeUnmount(() => {
             :disabled="busy"
           />
           <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON · AmneziaWG .conf") }} </p>
-          <div v-if="error" class="notice error" role="alert">{{ error }}</div>
+          <div v-if="error" class="notice error" role="alert"><span class="notice-symbol" aria-hidden="true">!</span><span>{{ error }}</span></div>
           <button class="primary" :disabled="busy || !link.trim()">
             {{ busy ? tr("Добавление…") : tr("Добавить соединение") }}
           </button>
