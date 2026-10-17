@@ -19,6 +19,7 @@ test('unified controls retain original colours, settings-only preferences and ke
  const cfg:any={version:7,activeNodeId:'s',nodes:[{id:'s',name:'UI fixture',protocol:'sudoku',serverAddress:'example.test:443'}],routing:{proxyMode:'global'},tun:{enabled:true},core:{autoStart:false},ui:{theme:'light',language:'ru'}};
  await page.route('**/wails/runtime',async route=>{const req=route.request().postDataJSON();let result:any=null;if(req.object===0){const method=ids[req.args.methodID];if(method==='GetConfig')result=cfg;if(method==='SaveConfig')Object.assign(cfg,req.args.args[0]);if(method==='GetState')result={running:false,traffic:{recentBandwidth:[]},kernel:{},recentLogs:[]}}await route.fulfill({contentType:'application/json',body:JSON.stringify(result)})});
  await page.goto('/');await expect(page.locator('.titlebar button')).toHaveCount(2);await expect(page.locator('.titlebar')).toHaveCSS('height','54px');
+ const footerOffset=await page.locator('footer').evaluate(e=>{const f=e.getBoundingClientRect(),s=e.querySelector('.footer-brand')!.getBoundingClientRect();return (s.top+s.height/2)-((f.top+parseFloat(getComputedStyle(e).borderTopWidth)+f.bottom)/2)});expect(footerOffset).toBeCloseTo(-2,0);
  const gear=page.locator('.settings-icon svg'),settings=page.getByRole('button',{name:'Настройки',exact:true});
  await expect(gear).toHaveAttribute('viewBox','5 0 85 85');await expect(gear).toHaveAttribute('width','24');await expect(gear).toHaveAttribute('height','24');
  const original=fs.readFileSync('../docs/assets/CONNECT-settings-08.svg','utf8');
@@ -26,6 +27,7 @@ test('unified controls retain original colours, settings-only preferences and ke
  for(const theme of ['light','dark']){
   await page.locator('html').evaluate((e,t)=>e.setAttribute('data-theme',t),theme);
   await expect(settings).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await settings.hover();await expect(settings).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(gear).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  for(const button of await page.locator('.titlebar button').all()){await button.hover();await expect(button).toHaveCSS('background-color','rgba(0, 0, 0, 0)')}
  }
  await page.locator('html').evaluate(e=>e.setAttribute('data-theme','light'));
  await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect(page.locator('.titlebar button')).toHaveCount(2);

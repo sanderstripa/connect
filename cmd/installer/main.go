@@ -33,7 +33,7 @@ var chromeFiles embed.FS
 //go:embed web/assets/icon.png
 var icon []byte
 
-const version = "0.1.10"
+const version = "0.2.1"
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
 
 type setup struct {

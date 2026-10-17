@@ -89,6 +89,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
         cfg.activeNodeId = "";
       }
     }
+    if (req.object === 0 && ids[req.args.methodID] === "StartProxy") await new Promise(r => setTimeout(r, 500));
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify(result),
@@ -116,6 +117,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
     .click();
   await expect(page.getByText("Нидерланды", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Подключить VPN", exact: true }).click();
+  await expect(page.locator(".page-progress")).toHaveCount(0);
   await expect(page.getByText("Соединение активно")).toBeVisible();
   await expect(page.locator(".power-button")).toHaveCount(1);
   await expect(page.locator(".page-home .primary")).toHaveCount(0);
@@ -135,6 +137,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await page.getByRole("option", { name: "Все, кроме списка" }).click();
   calls.length = 0;
   await page.getByRole("button", { name: "Сохранить настройки" }).click();
+  await expect(page.locator(".page-progress")).toHaveCount(0);
   await expect(page.getByText("Соединение активно")).toBeVisible();
   expect(
     calls.filter((m) => ["StopProxy", "SaveConfig", "StartProxy"].includes(m)),

@@ -383,7 +383,6 @@ onBeforeUnmount(() => {
     </header>
     <div v-if="loading" class="loading"> {{ tr("Загрузка…") }} </div>
     <main v-else :class="'page-' + page">
-      <div v-if="busy" class="ui-progress page-progress" role="progressbar" :aria-label="language === 'en' ? 'Working…' : 'Обработка…'"></div>
       <template v-if="page === 'home'">
         <div class="eyebrow-row">
           <button
@@ -605,8 +604,8 @@ onBeforeUnmount(() => {
         <span class="notice-symbol" aria-hidden="true">!</span><span>{{ error || state?.routeSetupError || state?.lastError }}</span>
       </div>
     </main>
-    <footer>
-      <span :role="message ? 'status' : undefined">{{
+    <footer :class="{ 'home-footer': page === 'home' }">
+      <span :class="{ 'footer-brand': !message }" :role="message ? 'status' : undefined">{{
         tr(message) || "CONNECT VPN"
       }}</span>
     </footer>
