@@ -170,6 +170,22 @@ func TestWindowsInstallUpdateRemoveIsolated(t *testing.T) {
 			if e = s.install(options.desktop, options.chrome, options.menu, dir); e != nil {
 				t.Fatal("update", e)
 			}
+			if options.chrome {
+				before, e := os.Stat(extension)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if e = s.install(false, false, false, dir); e != nil {
+					t.Fatal(e)
+				}
+				after, e := os.Stat(extension)
+				if e != nil || !before.ModTime().Equal(after.ModTime()) {
+					t.Fatal("disabled extension was changed", e)
+				}
+				if s.chrome {
+					t.Fatal("Chrome preparation must remain disabled")
+				}
+			}
 			if e = s.remove(); e != nil {
 				t.Fatal("remove", e)
 			}
