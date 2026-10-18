@@ -37,6 +37,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native integration tests failed' }
       - name: Test interface
         working-directory: frontend
+        env:
+          CONNECT_PREVIEW_DIR: ${{ github.workspace }}/.tmp/installer-previews
         shell: pwsh
         run: |
           npx playwright install chromium
@@ -45,6 +47,14 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: ./scripts/build-installer.ps1 -SkipApp
+      - name: Test native installer window
+        shell: pwsh
+        run: ./scripts/test-installer-window.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Connect-Installer-Screenshots
+          path: .tmp/installer-previews/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: Connect-Windows-x64

@@ -1,101 +1,27 @@
-import { test, expect } from "@playwright/test";
-import fs from "node:fs";
-import path from "node:path";
-const root = path.resolve("../cmd/installer/web");
-
-for (const uninstall of [false, true]) {
-  test(`installer themes, languages and ${uninstall ? "removal" : "installation"}`, async ({
-    page,
-  }) => {
-    const calls: string[] = [];
-    let fail = true;
-    await page.route("**/setup-test/**", async (route) => {
-      let name =
-        new URL(route.request().url()).pathname.replace("/setup-test/", "") ||
-        "index.html";
-      const file = path.resolve(root, name);
-      if (!file.startsWith(root + path.sep)) throw Error("invalid asset");
-      let data = fs.readFileSync(file);
-      if (name === "index.html")
-        data = Buffer.from(
-          data
-            .toString()
-            .replace("__TOKEN__", "test-token")
-            .replace("__MODE__", String(uninstall)),
-        );
-      const type = name.endsWith(".js")
-        ? "application/javascript"
-        : name.endsWith(".css")
-          ? "text/css"
-          : name.endsWith(".png")
-            ? "image/png"
-            : name.endsWith(".ttf")
-              ? "font/ttf"
-              : "text/html";
-      await route.fulfill({ body: data, contentType: type });
-    });
-    await page.route("**/api/**", async (route) => {
-      expect(route.request().headers()["x-setup-token"]).toBe("test-token");
-      const method = new URL(route.request().url()).pathname;
-      calls.push(method);
-      if (method === "/api/install") {
-        expect(route.request().postDataJSON()).toEqual({ desktop: true, chrome: true });
-      }
-      await route.fulfill({
-        status: fail ? 500 : 200,
-        contentType: "application/json",
-        body: JSON.stringify(fail ? { error: "busy app" } : { ok: true }),
-      });
-    });
-    await page.setViewportSize({ width: 440, height: 600 });
-    await page.goto("/setup-test/");
-    await page.evaluate(() => document.fonts.ready);
-    if ((await page.locator("#language").innerText()) === "EN")
-      await page.locator("#language").click();
-    await expect(page.locator("#title")).toHaveText(
-      uninstall ? "Удаление Connect" : "Установка Connect",
-    );
-    await page.locator("#language").click();
-    await expect(page.locator("#language")).toHaveText("EN");
-    await expect(page.locator("#primary")).toHaveText(
-      uninstall ? "Uninstall" : "Install",
-    );
-    await page.locator("#language").click();
-    await expect(page.locator("#language")).toHaveText("RU");
-    for (const theme of ["light", "dark"]) {
-      if ((await page.locator("html").getAttribute("data-theme")) !== theme)
-        await page.locator("#theme").click();
-      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollHeight <= innerHeight,
-        ),
-      ).toBe(true);
-      if (process.env.SUDOKU_PREVIEW_DIR)
-        await page.screenshot({
-          path: path.join(
-            process.env.SUDOKU_PREVIEW_DIR,
-            `setup-${theme}${uninstall ? "-uninstall" : ""}.png`,
-          ),
-        });
-    }
-    await page.locator("#primary").click();
-    await expect(page.locator("#error")).toBeVisible();
-    await expect(page.locator("#primary")).toBeEnabled();
-    fail = false;
-    await page.locator("#primary").click();
-    await expect(page.locator("#title")).toHaveText(
-      uninstall ? "Connect удалён" : "Connect установлен",
-    );
-    if (!uninstall) {
-      await expect.poll(() => calls.filter(c => c === "/api/chrome").length).toBe(1);
-      await expect(page.locator("#chromeNote")).toContainText("Ctrl+V");
-      await page.locator("#chromeSetup").click();
-      await expect.poll(() => calls.filter(c => c === "/api/chrome").length).toBe(2);
-      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
-    }
-    await page.locator("#primary").click();
-    await expect.poll(() => calls).toContain("/api/close");
-    if (!uninstall) expect(calls).toContain("/api/open");
-  });
-}
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';import path from 'node:path';
+const root=path.resolve('../cmd/installer/web');
+for(const theme of ['light','dark'])for(const uninstall of [false,true])test(`${theme} ${uninstall?'uninstall':'install'}`,async({page})=>{
+ let fail=true,release=()=>{},gate:Promise<void>|null=null,progress=0;
+ const calls:{action:string,data:any}[]=[];
+ await page.route('**/*',async route=>{const url=new URL(route.request().url());
+ if(url.pathname.startsWith('/api/')){const action=url.pathname.slice(5);calls.push({action,data:route.request().postDataJSON()});expect(route.request().headers()['x-setup-token']).toBe('test-token');if(['install','uninstall'].includes(action)){if(gate)await gate;if(fail)return route.fulfill({status:500,json:{error:'busy'}})}return route.fulfill({json:action==='progress'?{progress}:action==='folder'?{path:'D:\\Apps\\CONNECT'}:{ok:true}})}
+ if(url.pathname==='/wails/runtime.js')return route.fulfill({contentType:'application/javascript',body:'window.wails={Window:{Minimise(){window.didMinimize=true}}}'});
+ const file=path.resolve(root,url.pathname==='/'?'index.html':url.pathname.slice(1));if(!file.startsWith(root+path.sep))throw Error('asset');let body=fs.readFileSync(file);if(file.endsWith('index.html'))body=Buffer.from(body.toString().replace('__TOKEN__','test-token').replace('__MODE__',String(uninstall)).replace('__CONFIG__',JSON.stringify({path:'C:\\Program Files\\Connect',version:'0.2.3'})));await route.fulfill({body,contentType:({'.js':'application/javascript','.css':'text/css','.png':'image/png','.ttf':'font/ttf'} as any)[path.extname(file)]||'text/html'});
+ });
+ await page.goto('/');await page.evaluate(()=>document.fonts.ready);await page.evaluate(theme=>{document.getElementById('ru')!.click();document.getElementById(theme)!.click()},theme);
+ const snap=async(stage:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight)).toBe(true);if(process.env.CONNECT_PREVIEW_DIR){fs.mkdirSync(process.env.CONNECT_PREVIEW_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.CONNECT_PREVIEW_DIR,`${theme}-${uninstall?'uninstall-':''}${stage}.png`)})}};
+ await expect(page.locator('#version')).toHaveText('Версия 0.2.3');await snap('welcome');await page.locator('#minimize').click();await expect.poll(()=>page.evaluate(()=>(window as any).didMinimize)).toBe(true);
+ if(!uninstall){await page.locator('#settingsButton').click();await snap('settings');await page.locator('#en').click();await expect(page.locator('#accept')).toHaveText('Accept and install');await page.locator('#ru').click();await page.locator('#browse').click();await expect(page.locator('#path')).toHaveValue('D:\\Apps\\CONNECT');await page.locator('#desktop').uncheck();await page.locator('#startMenu').uncheck();await page.locator('#chrome').uncheck();await page.locator('#back').click()}
+ await page.locator('#primary').click();await expect(page.locator('#error')).toBeVisible();fail=false;gate=new Promise(r=>release=r);await page.locator('#retry').click();await expect(page.locator('#installing')).toBeVisible();progress=45;await expect(page.locator('#progress')).toHaveAttribute('value','45');await expect(page.locator('#close')).toBeDisabled();await snap('progress');release();await expect(page.locator('#finish')).toBeVisible();await snap('finish');
+ if(!uninstall){expect(calls.filter(c=>c.action==='install').at(-1)!.data).toEqual({desktop:false,startMenu:false,chrome:false,path:'D:\\Apps\\CONNECT'});expect(calls.some(c=>c.action==='chrome')).toBe(false);await page.locator('#launch').uncheck()}
+ await page.locator('#done').click();await expect.poll(()=>calls.some(c=>c.action==='close')).toBe(true);expect(calls.some(c=>c.action==='open')).toBe(false);
+});
+for(const theme of ['light','dark'])test(`${theme} default Chrome retry and launch`,async({page})=>{
+ let chromeCalls=0,installs=0;const calls:string[]=[];
+ await page.route('**/*',async route=>{const p=new URL(route.request().url()).pathname;
+ if(p.startsWith('/api/')){const action=p.slice(5);calls.push(action);if(action==='install'){installs++;expect(route.request().postDataJSON()).toEqual({desktop:true,startMenu:true,chrome:true,path:'C:\\Program Files\\Connect'})}if(action==='chrome'&&++chromeCalls===1)return route.fulfill({status:500,json:{error:'Chrome unavailable'}});return route.fulfill({json:{ok:true}})}
+ if(p==='/wails/runtime.js')return route.fulfill({body:''});const file=path.resolve(root,p==='/'?'index.html':p.slice(1));let body=fs.readFileSync(file);if(file.endsWith('index.html'))body=Buffer.from(body.toString().replace('__TOKEN__','test-token').replace('__MODE__','false').replace('__CONFIG__',JSON.stringify({path:'C:\\Program Files\\Connect',version:'0.2.3'})));await route.fulfill({body,contentType:({'.js':'application/javascript','.css':'text/css','.png':'image/png','.ttf':'font/ttf'} as any)[path.extname(file)]||'text/html'});
+ });
+ await page.goto('/');await page.evaluate(theme=>{document.getElementById('ru')!.click();document.getElementById(theme)!.click()},theme);await page.locator('#primary').click();await expect(page.locator('#finish')).toBeVisible();await expect(page.locator('#error')).toBeVisible();await page.locator('#chromeSetup').click();await expect(page.locator('#chromeNote')).toContainText('Ctrl+V');await expect(page.locator('#failure')).toBeHidden();expect(installs).toBe(1);expect(chromeCalls).toBe(2);if(process.env.CONNECT_PREVIEW_DIR)await page.screenshot({path:path.join(process.env.CONNECT_PREVIEW_DIR,`${theme}-finish-chrome.png`)});await page.locator('#done').click();await expect.poll(()=>calls.slice(-2)).toEqual(['open','close']);
+});

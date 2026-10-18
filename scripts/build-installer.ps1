@@ -14,6 +14,8 @@ try {
  & go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.74 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/installer.exe.manifest -info build/windows/info.json -out cmd/installer/wails_windows_amd64.syso
  if($LASTEXITCODE -ne 0){throw 'Installer resources failed'}
  $env:CGO_ENABLED='0'
- & go build -tags production -trimpath -buildvcs=false '-ldflags=-w -s -H windowsgui' -o build/bin/Connect-Setup.exe ./cmd/installer
+ $setupVersion=(Get-Content frontend/package.json -Raw | ConvertFrom-Json).version
+ if($setupVersion -notmatch '^\d+\.\d+\.\d+([+-][A-Za-z0-9.-]+)?$'){throw 'Invalid application version'}
+ & go build -tags production -trimpath -buildvcs=false "-ldflags=-w -s -H windowsgui -X main.version=$setupVersion" -o build/bin/Connect-Setup.exe ./cmd/installer
  if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
 }finally{Pop-Location}
