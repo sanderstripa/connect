@@ -47,6 +47,9 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: ./scripts/build-installer.ps1 -SkipApp
+      - name: Test native installer window
+        shell: pwsh
+        run: ./scripts/test-installer-window.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: Connect-Installer-Screenshots

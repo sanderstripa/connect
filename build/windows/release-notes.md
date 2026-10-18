@@ -1,10 +1,10 @@
-Connect 0.2.2 · Windows 10/11 x64
+Connect 0.2.3 · Windows 10/11 x64
 
-- Remember the desktop window position across restarts, with recovery into the visible work area when monitors change.
-- Align the Chrome extension version with the application: 0.2.2.
-- Disconnect the browser VPN when the last Chrome window closes, including background mode. New browser sessions start disconnected; profiles and preferences are preserved.
-- Tie browser core processes to the native helper lifetime, including abrupt Chrome termination.
+- New CONNECT VPN installer: 840×540, Montserrat, cream/light and neutral dark themes, and the approved matte sage Möbius ribbon.
+- Installation settings: immediate RU/EN and theme selection, destination folder, and switches for desktop shortcut, Start menu shortcut and Chrome extension.
+- Completed-stage installation progress and Done with an optional application launch.
+- Existing installations update in place. Running CONNECT/Chrome helpers are never forcibly terminated: quit CONNECT through its tray menu and disconnect the extension, then retry.
+- Chrome extension preparation is optional. Loading or updating it in Chrome remains a manual step; the installer copies its folder path and opens the extensions page.
+- Existing profiles and settings are preserved. Application and VPN behavior are unchanged apart from release-version metadata.
 
-Existing interface, palettes, Montserrat, window dimensions and protocol settings are unchanged. Updates and rollback remain immediate, without confirmation dialogs.
-
-Close Connect and disable its Chrome extension before installation, then reload/re-enable the extension. Profiles are preserved. Executables remain unsigned.
+The installed application version is shown in the bottom-right corner of the installer. Executables remain unsigned.

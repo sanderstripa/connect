@@ -38,3 +38,7 @@ The installed working CONNECT/Chrome on this computer must remain untouched. The
 No tag, release, main merge or auto-merge is authorized. Keep the PR draft until Windows CI and the remaining interactive checks are reviewed and the user explicitly permits release.
 
 Native preview attempt: a separate non-elevated copy was launched with a disposable WebView2 profile. It did not expose a usable window/CDP endpoint to the test harness, so native window rendering/minimize/folder-picker checks remain unverified. Only this test-owned preview process was stopped; installed CONNECT processes were left running. Do not infer a successful native launch from the successful build or Chrome-rendered screenshots.
+
+## Release authorization: 2026-10-19
+
+The user approved matte ribbon variant B and explicitly authorized publishing v0.2.3. This supersedes the earlier no-merge/no-release instruction after final checks pass. Release metadata is updated consistently; no VPN/application behavior changes are introduced. A native installer-window create/close smoke check is now required by the Windows workflow. The disposable review workflow using an already published payload was removed: release validation builds both application and installer from the same commit.
