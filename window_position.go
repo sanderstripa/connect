@@ -113,8 +113,6 @@ func bindWindowPosition(app *application.App, w application.Window, startHidden 
 		if !ready.Load() || w.IsMinimised() || w.IsMaximised() {
 			return
 		}
-		mu.Lock()
-		defer mu.Unlock()
 		x, y := w.Position()
 		p := windowPosition{X: x, Y: y}
 		if s, e := w.GetScreen(); e == nil && s != nil {
@@ -122,6 +120,10 @@ func bindWindowPosition(app *application.App, w application.Window, startHidden 
 			p.OffsetX = x - s.WorkArea.X
 			p.OffsetY = y - s.WorkArea.Y
 		}
+		// Never hold the file lock across synchronous UI-thread calls: quitting
+		// and the debounced movement callback can run concurrently.
+		mu.Lock()
+		defer mu.Unlock()
 		_ = saveWindowPosition(file, p)
 	}
 	w.OnWindowEvent(events.Common.WindowRuntimeReady, func(_ *application.WindowEvent) {
