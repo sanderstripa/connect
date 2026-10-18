@@ -17,7 +17,8 @@ public static class InstallerWindowProbe {
  }
 }
 '@
-$p=Start-Process -FilePath (Resolve-Path build/bin/Connect-Setup.exe).Path -PassThru -WindowStyle Hidden
+New-Item -ItemType Directory -Force .tmp | Out-Null
+$p=Start-Process -FilePath (Resolve-Path build/bin/Connect-Setup.exe).Path -PassThru -WindowStyle Hidden -RedirectStandardOutput .tmp/installer-stdout.log -RedirectStandardError .tmp/installer-stderr.log
 try {
  $deadline=(Get-Date).AddSeconds(35)
  do {
@@ -28,9 +29,14 @@ try {
  } while($window -eq [IntPtr]::Zero -and (Get-Date) -lt $deadline)
  if($window -eq [IntPtr]::Zero){throw 'Native installer window was not created'}
  Write-Host 'Native CONNECT VPN installer window created'
+ # A native handle precedes asynchronous WebView2 initialization.
+ Start-Sleep -Seconds 4
+ $p.Refresh()
+ if($p.HasExited){throw "Installer exited during WebView2 initialization: $($p.ExitCode)"}
  if(-not [InstallerWindowProbe]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'WM_CLOSE failed'}
  if(-not $p.WaitForExit(15000)){throw 'Native installer did not exit after close'}
  if($p.ExitCode -ne 0){throw "Installer exit code: $($p.ExitCode)"}
 } finally {
  if(-not $p.HasExited){$p.Kill();$p.WaitForExit()}
+ Get-Content .tmp/installer-stdout.log,.tmp/installer-stderr.log -ErrorAction SilentlyContinue
 }
