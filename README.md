@@ -46,9 +46,13 @@ Use **All traffic** with custom bypass rules disabled in Windows. This release d
 
 Transport tests use isolated loopback AWG peers with real encryption, TCP, UDP and tunnel DNS for AWG 1, 2 and 3 parameter sets. No user VPN server, production route or system installation is changed by these tests. A live external AmneziaWG server has not been tested.
 
+The desktop window remembers its last position across launches. If a monitor is removed, it returns to the visible desktop without changing its size.
+
 ## Chrome
 
 **Your connections, directly in the popup.** Click **Add**, paste a link or client configuration, and let Connect detect the protocol. Each saved connection has a small switch. Turning on another connection turns the previous one off; turning off the active switch disconnects. There is no separate settings page. Switch between Russian and English or light and dark themes directly in the header; both preferences are remembered.
+
+The extension and application share version 0.2.2. Closing the last normal or popup Chrome window disconnects the browser VPN, including when Chrome remains running in the background. A new browser session starts disconnected; saved connections and preferences remain available. Suspending/restarting the extension service worker during the same browser session preserves an explicitly enabled connection.
 
 Chrome starts its own local helper, so the desktop window can remain closed. Browser profiles are stored independently in `%APPDATA%\connect-chrome`. The helper does not change Windows proxy settings, DNS or routes.
 

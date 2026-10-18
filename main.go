@@ -54,6 +54,7 @@ func main() {
 	var quitting atomic.Bool
 	var app *application.App
 	var mainWindow application.Window
+	var persistMainPosition func()
 
 	showExistingInstance := func() {
 		application.InvokeAsync(func() {
@@ -107,6 +108,9 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		ShouldQuit: func() bool {
+			if persistMainPosition != nil {
+				persistMainPosition()
+			}
 			quitting.Store(true)
 			appService.ShutdownNow()
 			return true
@@ -116,6 +120,9 @@ func main() {
 	requestQuit := func() {
 		if !quitting.CompareAndSwap(false, true) {
 			return
+		}
+		if persistMainPosition != nil {
+			persistMainPosition()
 		}
 		appService.ShutdownNow()
 		app.Quit()
@@ -133,7 +140,7 @@ func main() {
 		Frameless:              true,
 		BackgroundType:         backgroundType,
 		BackgroundColour:       backgroundColour,
-		Hidden:                 startHidden,
+		Hidden:                 true,
 		OpenInspectorOnStartup: false,
 		Mac: application.MacWindow{
 			Backdrop: application.MacBackdropTransparent,
@@ -165,7 +172,9 @@ func main() {
 		},
 	})
 
+	persistMainPosition = bindWindowPosition(app, mainWindow, startHidden)
 	mainWindow.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		persistMainPosition()
 		if quitting.Load() {
 			return
 		}

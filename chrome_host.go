@@ -92,6 +92,14 @@ func runChromeHost() bool {
 		return true
 	}
 	defer unlock()
+	// Chrome may terminate its native host without allowing deferred shutdown.
+	// Keep every browser core tied to the host process lifetime.
+	releaseProcesses, e := containChromeProcesses()
+	if e != nil {
+		writeNativeMessage(os.Stdout, chromeResponse{Error: "Не удалось защитить жизненный цикл помощника Chrome"})
+		return true
+	}
+	defer releaseProcesses()
 	b, e := core.NewBrowserBackend(bundledRuntime, "runtime/bin")
 	if e != nil {
 		writeNativeMessage(os.Stdout, chromeResponse{Error: "Не удалось загрузить профили расширения"})

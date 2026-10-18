@@ -1,9 +1,10 @@
-Connect 0.2.1 · Windows 10/11 x64
+Connect 0.2.2 · Windows 10/11 x64
 
-- Raised the CONNECT VPN footer label slightly on the home screen.
-- Removed the moving progress strip below the titlebar during connection operations.
-- Removed hover backgrounds from the minimize and close/hide-to-tray buttons in both themes.
+- Remember the desktop window position across restarts, with recovery into the visible work area when monitors change.
+- Align the Chrome extension version with the application: 0.2.2.
+- Disconnect the browser VPN when the last Chrome window closes, including background mode. New browser sessions start disconnected; profiles and preferences are preserved.
+- Tie browser core processes to the native helper lifetime, including abrupt Chrome termination.
 
-The remaining interface, approved settings icon #8, palettes, Montserrat, window dimensions and VPN behavior are unchanged. Windows interface tests cover footer alignment, the pending connection state and transparent window controls in both themes.
+Existing interface, palettes, Montserrat, window dimensions and protocol settings are unchanged. Updates and rollback remain immediate, without confirmation dialogs.
 
-Install with Connect closed and its Chrome extension disabled, then reload/re-enable the extension. Profiles are preserved. Executables remain unsigned.
+Close Connect and disable its Chrome extension before installation, then reload/re-enable the extension. Profiles are preserved. Executables remain unsigned.

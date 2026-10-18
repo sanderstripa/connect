@@ -3,11 +3,12 @@ import fs from 'node:fs';import path from 'node:path';import crypto from 'node:c
 const bindings=fs.readFileSync(path.resolve('bindings/github.com/SUDOKU-ASCII/sudoku-desktop/app.ts'),'utf8');
 const ids=Object.fromEntries([...bindings.matchAll(/export function (\w+)\([^]*?\$Call.ByID\((\d+)/g)].map(m=>[Number(m[2]),m[1]]));
 
-test('original palette, font asset and native shell remain byte-identical',()=>{
+test('original palette, font asset and native shell dimensions remain unchanged',()=>{
+ const native=fs.readFileSync('../main.go','utf8');
+ for(const [key,value] of [['Width','410'],['Height','660'],['MinWidth','360'],['MinHeight','660'],['Frameless','true']])expect(native).toMatch(new RegExp('\\b'+key+':\\s+'+value+','));
  const expected:Record<string,string>={
   'src/style.css':'256b5dffe74b7d17da53f1de23bef6bd1b1418ed1f059d11bb801a12c6dda2bb',
   'src/assets/fonts/Montserrat.ttf':'0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7',
-  '../main.go':'5165e72554327e65c3bc6244d859b88dea56e73999a3ad31b8a82b16234ebf27',
   '../docs/assets/CONNECT-settings-08.svg':'3f14c9094a96c13584a5514ef648a25cfbcb95371668036279ef4cb8051baf18'};
  // Normalize checked-out CRLF/LF text; the Montserrat binary is hashed as-is.
  for(const [file,hash] of Object.entries(expected)){
