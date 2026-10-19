@@ -1,7 +1,7 @@
-Connect 0.2.5 · Windows 10/11 x64
+CONNECT 0.2.6
 
-- Closing the installation-folder picker, pressing Escape or choosing Cancel now returns silently to settings and keeps the current path.
-- Distinguish normal folder-dialog cancellation from actual Windows/COM failures; genuine errors still show a warning and can be retried.
-- Preserve manual path edits, repeated folder selection, the approved installer design, window dragging and all install/update/Chrome/uninstall behavior.
+- Selected installer language and theme are applied to CONNECT on its first launch after installation, including upgrades over existing preferences.
+- Other user settings and connections are preserved. Later in-app presentation changes remain effective until the next installation.
+- Installer design, folder cancellation, window dragging and Chrome workflow are retained.
 
-The installed version is shown in the bottom-right corner. Profiles and preferences are preserved; Chrome extension loading/updating remains manual. Executables remain unsigned.
+Windows binaries are unsigned.

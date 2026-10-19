@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/installprefs"
 	"io/fs"
 	"net"
 	"net/http"
@@ -101,6 +102,15 @@ func newBackendForStore(runtimeFS fs.FS, runtimeRoot, newStoreName string, brows
 	cfg, err := store.Load()
 	if err != nil {
 		return nil, err
+	}
+	if !browserOnly && runtime.GOOS == "windows" {
+		executable, e := os.Executable()
+		if e != nil {
+			return nil, e
+		}
+		if e = store.applyInstallerPreferences(cfg, filepath.Join(filepath.Dir(executable), installprefs.File)); e != nil {
+			return nil, e
+		}
 	}
 	if err := ensureDir(cfg.Core.WorkingDir); err != nil {
 		return nil, err

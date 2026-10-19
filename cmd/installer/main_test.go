@@ -4,6 +4,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/installprefs"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"net/http/httptest"
@@ -114,8 +116,13 @@ func TestWindowsInstallUpdateRemoveIsolated(t *testing.T) {
 		t.Run(options.name, func(t *testing.T) {
 			dir := filepath.Join(base, options.name, "Custom folder's CONNECT")
 			s := &setup{dir: dir, cleanupAutostart: func() error { return nil }}
-			if err := s.install(options.desktop, options.chrome, options.menu, dir); err != nil {
+			if err := s.install(options.desktop, options.chrome, options.menu, dir, installprefs.Preferences{Language: "en", Theme: "dark"}); err != nil {
 				t.Fatal(err)
+			}
+			raw, preferenceErr := os.ReadFile(filepath.Join(dir, installprefs.File))
+			var prefs installprefs.Preferences
+			if preferenceErr != nil || json.Unmarshal(raw, &prefs) != nil || !prefs.Valid() || prefs.Language != "en" || prefs.Theme != "dark" {
+				t.Fatal("installer preferences missing", string(raw), preferenceErr)
 			}
 			if installDir() != dir {
 				t.Fatal("registered destination not restored")
@@ -157,7 +164,7 @@ func TestWindowsInstallUpdateRemoveIsolated(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			if e = s.install(options.desktop, options.chrome, options.menu, dir); e == nil {
+			if e = s.install(options.desktop, options.chrome, options.menu, dir, installprefs.Preferences{Language: "en", Theme: "dark"}); e == nil {
 				t.Error("locked app update accepted")
 			}
 			if e = s.remove(); e == nil {
@@ -167,7 +174,7 @@ func TestWindowsInstallUpdateRemoveIsolated(t *testing.T) {
 			if _, e = os.Stat(userFile); e != nil {
 				t.Fatal("data lost after locked operation")
 			}
-			if e = s.install(options.desktop, options.chrome, options.menu, dir); e != nil {
+			if e = s.install(options.desktop, options.chrome, options.menu, dir, installprefs.Preferences{Language: "en", Theme: "dark"}); e != nil {
 				t.Fatal("update", e)
 			}
 			if options.chrome {
