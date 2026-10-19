@@ -248,6 +248,9 @@ func (s *setup) remove() error {
 	if err = os.Remove(filepath.Join(dir, "Connect.exe")); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("close Connect before uninstalling: %w", err)
 	}
+	if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	s.progress.Store(50)
 	_ = registry.DeleteKey(machineRegistry, `Software\Google\Chrome\NativeMessagingHosts\com.sanderstripa.connect`)
 	_ = os.Remove(filepath.Join(dir, "chrome-native-host.json"))
