@@ -36,7 +36,7 @@ var chromeFiles embed.FS
 //go:embed web/assets/icon.png
 var icon []byte
 
-var version = "0.2.4" // Overridden from the application package by build-installer.ps1.
+var version = "0.2.5" // Overridden from the application package by build-installer.ps1.
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
 
 var machineRegistry = registry.LOCAL_MACHINE
@@ -52,6 +52,7 @@ type setup struct {
 	chrome           bool
 	progress         atomic.Int32
 	cleanupAutostart func() error
+	chooseFolder     func() (string, error)
 }
 
 func installDir() string {
@@ -295,13 +296,20 @@ func (s *setup) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = fmt.Errorf("invalid mode")
 			break
 		}
-		dir, e := s.app.Dialog.OpenFile().CanChooseDirectories(true).CanChooseFiles(false).PromptForSingleSelection()
+		choose := s.chooseFolder
+		if choose == nil {
+			choose = func() (string, error) {
+				return s.app.Dialog.OpenFile().CanChooseDirectories(true).CanChooseFiles(false).PromptForSingleSelection()
+			}
+		}
+		dir, e := choose()
+		selection, e := folderDialogResult(dir, e)
 		if e != nil {
 			err = e
 			break
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"path": dir})
+		_ = json.NewEncoder(w).Encode(selection)
 		return
 	case "/api/uninstall":
 		if !s.uninstall {

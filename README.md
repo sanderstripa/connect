@@ -52,7 +52,7 @@ The desktop window remembers its last position across launches. If a monitor is 
 
 **Your connections, directly in the popup.** Click **Add**, paste a link or client configuration, and let Connect detect the protocol. Each saved connection has a small switch. Turning on another connection turns the previous one off; turning off the active switch disconnects. There is no separate settings page. Switch between Russian and English or light and dark themes directly in the header; both preferences are remembered.
 
-The extension and application share version 0.2.4. Closing the last normal or popup Chrome window disconnects the browser VPN, including when Chrome remains running in the background. A new browser session starts disconnected; saved connections and preferences remain available. Suspending/restarting the extension service worker during the same browser session preserves an explicitly enabled connection.
+The extension and application share version 0.2.5. Closing the last normal or popup Chrome window disconnects the browser VPN, including when Chrome remains running in the background. A new browser session starts disconnected; saved connections and preferences remain available. Suspending/restarting the extension service worker during the same browser session preserves an explicitly enabled connection.
 
 Chrome starts its own local helper, so the desktop window can remain closed. Browser profiles are stored independently in `%APPDATA%\connect-chrome`. The helper does not change Windows proxy settings, DNS or routes.
 
