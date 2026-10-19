@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/installprefs"
 	"io/fs"
 	"net/http"
 	"os"
@@ -36,7 +37,7 @@ var chromeFiles embed.FS
 //go:embed web/assets/icon.png
 var icon []byte
 
-var version = "0.2.5" // Overridden from the application package by build-installer.ps1.
+var version = "0.2.6" // Overridden from the application package by build-installer.ps1.
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
 
 var machineRegistry = registry.LOCAL_MACHINE
@@ -135,7 +136,20 @@ func writeAtomic(path string, data []byte) error {
 	}
 	return os.Rename(name, path)
 }
-func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination string) error {
+func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination string, preferences ...installprefs.Preferences) error {
+	var preferenceData []byte
+	if len(preferences) > 0 {
+		p := preferences[0]
+		id := make([]byte, 32)
+		if _, err := rand.Read(id); err != nil {
+			return err
+		}
+		p.ID = hex.EncodeToString(id)
+		if !p.Valid() {
+			return fmt.Errorf("invalid installation language or theme")
+		}
+		preferenceData, _ = json.Marshal(p)
+	}
 	s.progress.Store(0)
 	dir, err := validateDir(destination)
 	if err != nil {
@@ -212,6 +226,11 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 			return err
 		}
 	}
+	if preferenceData != nil {
+		if err = writeAtomic(filepath.Join(dir, installprefs.File), preferenceData); err != nil {
+			return err
+		}
+	}
 	s.dir, s.installed, s.chrome = dir, true, chrome
 	s.progress.Store(100)
 	return nil
@@ -228,6 +247,9 @@ func (s *setup) remove() error {
 	// Remove the app first. A running app leaves everything intact and reports an error.
 	if err = os.Remove(filepath.Join(dir, "Connect.exe")); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("close Connect before uninstalling: %w", err)
+	}
+	if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
+		return err
 	}
 	s.progress.Store(50)
 	_ = registry.DeleteKey(machineRegistry, `Software\Google\Chrome\NativeMessagingHosts\com.sanderstripa.connect`)
@@ -275,6 +297,8 @@ func (s *setup) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Chrome    bool   `json:"chrome"`
 			StartMenu *bool  `json:"startMenu"`
 			Path      string `json:"path"`
+			Language  string `json:"language"`
+			Theme     string `json:"theme"`
 		}
 		err = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&opts)
 		if s.uninstall {
@@ -288,7 +312,7 @@ func (s *setup) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if _, e := os.Stat(filepath.Join(s.dir, "Connect.exe")); e == nil && !strings.EqualFold(filepath.Clean(opts.Path), s.dir) {
 				err = fmt.Errorf("update the existing installation at %s", s.dir)
 			} else {
-				err = s.install(opts.Desktop, opts.Chrome, opts.StartMenu == nil || *opts.StartMenu, opts.Path)
+				err = s.install(opts.Desktop, opts.Chrome, opts.StartMenu == nil || *opts.StartMenu, opts.Path, installprefs.Preferences{Language: opts.Language, Theme: opts.Theme})
 			}
 		}
 	case "/api/folder":

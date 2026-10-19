@@ -19,7 +19,7 @@ function clearError(){$('failure').hidden=true}
 async function prepareChrome(){try{await call('chrome');chromeReady=true;clearError()}catch{chromeReady=false;error(text[lang].chromeError)}render()}
 async function install(){if(busy)return;busy=true;clearError();stage='installing';$('progress').value=0;render();
  const timer=setInterval(async()=>{try{const r=await fetch('/api/progress',{headers:{'X-Setup-Token':window.setupToken}});if(r.ok){const p=await r.json();if(busy)$('progress').value=p.progress}}catch{}},150);
- try{await call(uninstall?'uninstall':'install',{desktop:$('desktop').checked,startMenu:$('startMenu').checked,chrome:$('chrome').checked,path:$('path').value});installed=true;$('progress').value=100;stage='finish';if(!uninstall&&$('chrome').checked)await prepareChrome()}
+ try{await call(uninstall?'uninstall':'install',{desktop:$('desktop').checked,startMenu:$('startMenu').checked,chrome:$('chrome').checked,path:$('path').value,language:lang,theme:light?'light':'dark'});installed=true;$('progress').value=100;stage='finish';if(!uninstall&&$('chrome').checked)await prepareChrome()}
  catch(e){stage='welcome';error(text[lang].error+' '+e.message)}finally{clearInterval(timer);busy=false;render()}}
 for(const id of ['ru','en'])$(id).onclick=()=>{lang=id;render()};for(const id of ['light','dark'])$(id).onclick=()=>{light=id==='light';render()};
 $('settingsButton').onclick=()=>{clearError();stage='settings';render()};$('back').onclick=()=>{clearError();stage='welcome';render()};$('primary').onclick=install;$('accept').onclick=install;

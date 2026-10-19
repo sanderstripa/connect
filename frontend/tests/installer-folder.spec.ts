@@ -7,14 +7,14 @@ for(const language of ['ru','en'])test(`folder cancellation preserves path witho
  await page.route('**/*',async route=>{
   const p=new URL(route.request().url()).pathname;
   if(p==='/api/folder')return route.fulfill({status:fail?500:200,json:fail?{error:'access denied'}:result});
-  if(p==='/api/install'){installations++;expect(route.request().postDataJSON().path).toBe('D:\\Selected\\Connect');return route.fulfill({json:{ok:true}})}
+  if(p==='/api/install'){installations++;expect(route.request().postDataJSON()).toMatchObject({language,theme:'dark'});expect(route.request().postDataJSON().path).toBe('D:\\Selected\\Connect');return route.fulfill({json:{ok:true}})}
   if(p.startsWith('/api/'))return route.fulfill({json:{ok:true}});
   if(p==='/wails/runtime.js')return route.fulfill({contentType:'application/javascript',body:''});
   const file=path.resolve(root,p==='/'?'index.html':p.slice(1));if(!file.startsWith(root+path.sep))throw Error('asset');let body=fs.readFileSync(file);
-  if(file.endsWith('index.html'))body=Buffer.from(body.toString().replace('__TOKEN__','test').replace('__MODE__','false').replace('__CONFIG__',JSON.stringify({path:'C:\\Program Files\\Connect',version:'0.2.5'})));
+  if(file.endsWith('index.html'))body=Buffer.from(body.toString().replace('__TOKEN__','test').replace('__MODE__','false').replace('__CONFIG__',JSON.stringify({path:'C:\\Program Files\\Connect',version:'0.2.6'})));
   await route.fulfill({body,contentType:({'.js':'application/javascript','.css':'text/css','.png':'image/png','.ttf':'font/ttf'}as any)[path.extname(file)]||'text/html'});
  });
- await page.goto('/');await page.locator('#settingsButton').click();await page.locator('#'+language).click();
+ await page.goto('/');await page.locator('#settingsButton').click();await page.locator('#'+language).click();await page.locator('#dark').click();
  await page.locator('#browse').click();await expect(page.locator('#path')).toHaveValue('C:\\Program Files\\Connect');await expect(page.locator('#failure')).toBeHidden();
  await page.locator('#path').fill('E:\\My custom folder');await page.locator('#browse').click();await expect(page.locator('#path')).toHaveValue('E:\\My custom folder');await expect(page.locator('#failure')).toBeHidden();
  fail=true;await page.locator('#browse').click();await expect(page.locator('#error')).toBeVisible();await expect(page.locator('#path')).toHaveValue('E:\\My custom folder');
