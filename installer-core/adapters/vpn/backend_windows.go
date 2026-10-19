@@ -266,7 +266,19 @@ func (s *setup) remove() error {
 	return nil
 }
 func cleanupAutostart() error {
-	return powershell("$ErrorActionPreference='Stop'; $id=[Security.Principal.WindowsIdentity]::GetCurrent(); $task='Connect-App-'+$id.User.Value; if(Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue){Unregister-ScheduledTask -TaskName $task -Confirm:$false}; Remove-ItemProperty -LiteralPath 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'connect-app' -ErrorAction SilentlyContinue")
+	// A clean install may be removed before first launch creates any startup entry.
+	// Missing entries are already clean; genuine registry/task failures still stop removal.
+	return powershell(`$ErrorActionPreference='Stop';
+$id=[Security.Principal.WindowsIdentity]::GetCurrent();
+$task='Connect-App-'+$id.User.Value;
+$existing=@(Get-ScheduledTask -ErrorAction Stop | Where-Object { $_.TaskName -eq $task });
+foreach($entry in $existing){Unregister-ScheduledTask -InputObject $entry -Confirm:$false};
+$run='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run';
+if(Test-Path -LiteralPath $run){
+ $key=Get-Item -LiteralPath $run;
+ if(@($key.GetValueNames()) -contains 'connect-app'){Remove-ItemProperty -LiteralPath $run -Name 'connect-app'}
+};
+exit 0`)
 }
 
 // Match the supplied installer's guided final step without modifying Chrome's
