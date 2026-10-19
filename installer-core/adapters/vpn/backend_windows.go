@@ -1,0 +1,319 @@
+//go:build windows
+
+package vpn
+
+import (
+	"connect-installer.local/core/installprefs"
+	"connect-installer.local/core/products"
+	"crypto/rand"
+	"embed"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"syscall"
+
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
+)
+
+//go:embed payload/Connect.exe
+var payload []byte
+
+//go:embed chrome
+var chromeFiles embed.FS
+
+var version = products.Version("connect")
+
+const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
+
+var machineRegistry = registry.LOCAL_MACHINE
+
+type setup struct {
+	mu               sync.Mutex
+	token            string
+	uninstall        bool
+	removed          bool
+	dir              string
+	installed        bool
+	chrome           bool
+	progress         atomic.Int32
+	cleanupAutostart func() error
+	chooseFolder     func() (string, error)
+}
+
+func installDir() string {
+	key, err := registry.OpenKey(machineRegistry, uninstallKey, registry.QUERY_VALUE)
+	if err == nil {
+		defer key.Close()
+		if dir, _, e := key.GetStringValue("InstallLocation"); e == nil && filepath.IsAbs(dir) {
+			return filepath.Clean(dir)
+		}
+	}
+	return filepath.Join(os.Getenv("ProgramFiles"), "Connect")
+}
+func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
+func powershell(script string) error {
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+func safeDir() (string, error) {
+	return validateDir(installDir())
+}
+func validateDir(dir string) (string, error) {
+	dir = filepath.Clean(strings.TrimSpace(dir))
+	if !filepath.IsAbs(dir) || strings.HasPrefix(dir, `\\`) || filepath.Dir(dir) == dir || strings.ContainsAny(dir, `<>"|?*`) {
+		return "", fmt.Errorf("invalid installation directory")
+	}
+	if strings.Contains(strings.TrimPrefix(dir, filepath.VolumeName(dir)), ":") {
+		return "", fmt.Errorf("invalid installation directory")
+	}
+	for _, protected := range []string{os.Getenv("WINDIR"), os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramData"), os.Getenv("USERPROFILE")} {
+		if protected != "" && strings.EqualFold(dir, filepath.Clean(protected)) {
+			return "", fmt.Errorf("choose a dedicated application folder")
+		}
+	}
+	for p := dir; filepath.Dir(p) != p; p = filepath.Dir(p) {
+		if st, err := os.Lstat(p); err == nil {
+			attrs, e := windows.GetFileAttributes(windows.StringToUTF16Ptr(p))
+			if e != nil || !st.IsDir() || attrs&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+				return "", fmt.Errorf("installation directory must not contain junctions or symbolic links")
+			}
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+	}
+	return dir, nil
+}
+
+// Opening with DELETE access fails while the executable is mapped by Windows.
+// Check before changing extension files, shortcuts or registry. Never kill a process.
+func checkAppClosed(dir string) error {
+	p := filepath.Join(dir, "Connect.exe")
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	h, err := windows.CreateFile(windows.StringToUTF16Ptr(p), windows.DELETE|windows.GENERIC_WRITE, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		return fmt.Errorf("close Connect from its tray menu, disconnect the Chrome extension, then retry: %w", err)
+	}
+	return windows.CloseHandle(h)
+}
+func writeAtomic(path string, data []byte) error {
+	temp, err := os.CreateTemp(filepath.Dir(path), ".sudoku-*")
+	if err != nil {
+		return err
+	}
+	name := temp.Name()
+	defer os.Remove(name)
+	if _, err = temp.Write(data); err != nil {
+		temp.Close()
+		return err
+	}
+	if err = temp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(name, path)
+}
+func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination string, preferences ...installprefs.Preferences) error {
+	var preferenceData []byte
+	if len(preferences) > 0 && !existingConfiguration(destination) {
+		p := preferences[0]
+		id := make([]byte, 32)
+		if _, err := rand.Read(id); err != nil {
+			return err
+		}
+		p.ID = hex.EncodeToString(id)
+		if !p.Valid() {
+			return fmt.Errorf("invalid installation language or theme")
+		}
+		preferenceData, _ = json.Marshal(p)
+	}
+	s.progress.Store(0)
+	dir, err := validateDir(destination)
+	if err != nil {
+		return err
+	}
+	if err = checkAppClosed(dir); err != nil {
+		return err
+	}
+	// A custom destination must be empty or already owned by CONNECT.
+	if entries, e := os.ReadDir(dir); e == nil && len(entries) > 0 {
+		if _, e = os.Stat(filepath.Join(dir, "Connect.exe")); e != nil {
+			return fmt.Errorf("choose an empty folder or the existing CONNECT installation")
+		}
+	}
+	s.progress.Store(5)
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	if err = writeAtomic(filepath.Join(dir, "Connect.exe"), payload); err != nil {
+		return fmt.Errorf("close Connect before updating: %w", err)
+	}
+	s.progress.Store(45)
+	if chrome {
+		if err = installChrome(dir); err != nil {
+			return err
+		}
+	}
+	s.progress.Store(65)
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(self)
+	if err != nil {
+		return err
+	}
+	if err = writeAtomic(filepath.Join(dir, "Uninstall.exe"), data); err != nil {
+		return err
+	}
+	menu := filepath.Join(os.Getenv("ProgramData"), `Microsoft\Windows\Start Menu\Programs\Connect`)
+	if startMenu {
+		if err = os.MkdirAll(menu, 0755); err != nil {
+			return err
+		}
+	}
+	script := "$ErrorActionPreference='Stop'; $w=New-Object -ComObject WScript.Shell; "
+	destinations := []string{}
+	if startMenu {
+		destinations = append(destinations, filepath.Join(menu, "Connect.lnk"))
+	}
+	if desktop {
+		destinations = append(destinations, filepath.Join(os.Getenv("PUBLIC"), "Desktop", "Connect.lnk"))
+	}
+	for _, dest := range destinations {
+		script += "$l=$w.CreateShortcut(" + quote(dest) + "); $l.TargetPath=" + quote(filepath.Join(dir, "Connect.exe")) + "; $l.WorkingDirectory=" + quote(dir) + "; $l.IconLocation=" + quote(filepath.Join(dir, "Connect.exe")+",0") + "; $l.Save(); "
+	}
+	if err = powershell(script); err != nil {
+		return err
+	}
+	s.progress.Store(85)
+	key, _, err := registry.CreateKey(machineRegistry, uninstallKey, registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer key.Close()
+	values := map[string]string{"DisplayName": "Connect VPN", "DisplayVersion": version, "Publisher": "Connect", "InstallLocation": dir, "DisplayIcon": filepath.Join(dir, "Connect.exe"), "UninstallString": "\"" + filepath.Join(dir, "Uninstall.exe") + "\" --uninstall"}
+	for k, v := range values {
+		if err = key.SetStringValue(k, v); err != nil {
+			return err
+		}
+	}
+	for _, k := range []string{"NoModify", "NoRepair"} {
+		if err = key.SetDWordValue(k, 1); err != nil {
+			return err
+		}
+	}
+	if preferenceData != nil {
+		if err = writeAtomic(filepath.Join(dir, installprefs.File), preferenceData); err != nil {
+			return err
+		}
+	} else if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	s.dir, s.installed, s.chrome = dir, true, chrome
+	s.progress.Store(100)
+	return nil
+}
+func (s *setup) remove() error {
+	dir, err := validateDir(s.dir)
+	if err != nil {
+		return err
+	}
+	if err = checkAppClosed(dir); err != nil {
+		return err
+	}
+	s.progress.Store(10)
+	// Remove the app first. A running app leaves everything intact and reports an error.
+	if err = os.Remove(filepath.Join(dir, "Connect.exe")); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("close Connect before uninstalling: %w", err)
+	}
+	if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	s.progress.Store(50)
+	_ = registry.DeleteKey(machineRegistry, `Software\Google\Chrome\NativeMessagingHosts\com.sanderstripa.connect`)
+	_ = os.Remove(filepath.Join(dir, "chrome-native-host.json"))
+	if err = registry.DeleteKey(machineRegistry, uninstallKey); err != nil && err != registry.ErrNotExist {
+		return err
+	}
+	menu := filepath.Join(os.Getenv("ProgramData"), `Microsoft\Windows\Start Menu\Programs\Connect`)
+	_ = os.Remove(filepath.Join(menu, "Connect.lnk"))
+	_ = os.Remove(menu)
+	_ = os.Remove(filepath.Join(os.Getenv("PUBLIC"), "Desktop", "Connect.lnk"))
+	cleanup := s.cleanupAutostart
+	if cleanup == nil {
+		cleanup = cleanupAutostart
+	}
+	if err = cleanup(); err != nil {
+		return err
+	}
+	s.progress.Store(100)
+	return nil
+}
+func cleanupAutostart() error {
+	return powershell("$ErrorActionPreference='Stop'; $id=[Security.Principal.WindowsIdentity]::GetCurrent(); $task='Connect-App-'+$id.User.Value; if(Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue){Unregister-ScheduledTask -TaskName $task -Confirm:$false}; Remove-ItemProperty -LiteralPath 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'connect-app' -ErrorAction SilentlyContinue")
+}
+
+// Match the supplied installer's guided final step without modifying Chrome's
+// authenticated profile files or imposing enterprise policies on a personal browser.
+func prepareChrome(dir string) error {
+	if _, err := os.Stat(filepath.Join(dir, "ChromeExtension", "manifest.json")); err != nil {
+		return err
+	}
+	script := "$ErrorActionPreference='Stop'; Set-Clipboard -Value " + quote(filepath.Join(dir, "ChromeExtension")) + "; " +
+		"$chrome=@((Join-Path $env:ProgramFiles 'Google\\Chrome\\Application\\chrome.exe'),(Join-Path ${env:ProgramFiles(x86)} 'Google\\Chrome\\Application\\chrome.exe'),(Join-Path $env:LOCALAPPDATA 'Google\\Chrome\\Application\\chrome.exe')) | Where-Object {Test-Path -LiteralPath $_} | Select-Object -First 1; " +
+		"if($chrome){(New-Object -ComObject Shell.Application).ShellExecute($chrome,'chrome://extensions/','','open',1)}"
+	return powershell(script)
+}
+func installChrome(dir string) error {
+	root := filepath.Join(dir, "ChromeExtension")
+	if err := fs.WalkDir(chromeFiles, "chrome", func(p string, d fs.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+		dest := filepath.Join(root, strings.TrimPrefix(strings.TrimPrefix(p, "chrome"), "/"))
+		if d.IsDir() {
+			if _, err := validateDir(dest); err != nil {
+				return err
+			}
+			return os.MkdirAll(dest, 0755)
+		}
+		b, e := chromeFiles.ReadFile(p)
+		if e != nil {
+			return e
+		}
+		return writeAtomic(dest, b)
+	}); err != nil {
+		return err
+	}
+	manifest := map[string]any{"name": "com.sanderstripa.connect", "description": "Connect browser transport helper", "path": filepath.Join(dir, "Connect.exe"), "type": "stdio", "allowed_origins": []string{"chrome-extension://gmhibjohmhkchkongeibochdfidjiiic/"}}
+	b, e := json.MarshalIndent(manifest, "", "  ")
+	if e != nil {
+		return e
+	}
+	p := filepath.Join(dir, "chrome-native-host.json")
+	if e = writeAtomic(p, b); e != nil {
+		return e
+	}
+	key, _, e := registry.CreateKey(machineRegistry, `Software\Google\Chrome\NativeMessagingHosts\com.sanderstripa.connect`, registry.SET_VALUE)
+	if e != nil {
+		return e
+	}
+	defer key.Close()
+	return key.SetStringValue("", p)
+}

@@ -1,0 +1,17 @@
+{
+  "id": "screencast",
+  "repository": "https://github.com/sanderstripa/screencast",
+  "sourceCommit": "f25428da46d01b867d2b4ae3b72d7d499387d8bd",
+  "name": "Screencast",
+  "version": "0.4.2",
+  "installScope": "user",
+  "engine": "zip",
+  "chrome": false,
+  "postInstall": "",
+  "ribbonBounds": [
+    88,
+    39,
+    1459,
+    995
+  ]
+}

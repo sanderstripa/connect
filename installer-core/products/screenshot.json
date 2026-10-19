@@ -1,0 +1,17 @@
+{
+  "id": "screenshot",
+  "repository": "https://github.com/sanderstripa/screenshot",
+  "sourceCommit": "8e45527f557263d36af4f07362c32b1a79df9831",
+  "name": "Screenshot",
+  "version": "0.7.2",
+  "installScope": "user",
+  "engine": "Go",
+  "chrome": false,
+  "postInstall": "hotkey",
+  "ribbonBounds": [
+    119,
+    48,
+    1459,
+    982
+  ]
+}

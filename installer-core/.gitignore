@@ -1,0 +1,7 @@
+*.syso
+node_modules/
+adapters/*/payload.zip
+adapters/*/payload.exe
+adapters/vpn/payload/
+adapters/screenshot/Screenshot.exe
+adapters/vpn/chrome/

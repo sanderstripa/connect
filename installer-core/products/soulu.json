@@ -1,0 +1,17 @@
+{
+  "id": "soulu",
+  "repository": "https://github.com/sanderstripa/soulu",
+  "sourceCommit": "099d79131edca2e0af02b67e39cb09db46f49d64",
+  "name": "Soulu",
+  "version": "1.0.61-beta",
+  "installScope": "user",
+  "engine": "zip + verified CEF",
+  "chrome": false,
+  "postInstall": "",
+  "ribbonBounds": [
+    118,
+    49,
+    1458,
+    983
+  ]
+}

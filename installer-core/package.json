@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "test:ui": "node ui-review.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
+}

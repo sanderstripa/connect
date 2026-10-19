@@ -1,0 +1,17 @@
+{
+  "id": "torrent",
+  "repository": "https://github.com/sanderstripa/torrent",
+  "sourceCommit": "48d97b414b347bee46d905596006c76bc5c33d66",
+  "name": "Torrent",
+  "version": "0.2.10",
+  "installScope": "user",
+  "engine": "NSIS",
+  "chrome": false,
+  "postInstall": "",
+  "ribbonBounds": [
+    119,
+    48,
+    1459,
+    980
+  ]
+}
