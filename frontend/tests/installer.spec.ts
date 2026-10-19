@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';import path from 'node:path';
+test.use({viewport:{width:840,height:540}});
 const root=path.resolve('../cmd/installer/web');
 for(const theme of ['light','dark'])for(const uninstall of [false,true])test(`${theme} ${uninstall?'uninstall':'install'}`,async({page})=>{
  let fail=true,release=()=>{},gate:Promise<void>|null=null,progress=0;

@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+test.use({viewport:{width:840,height:540}});
 const root=path.resolve('../cmd/installer/web');
 const cache=process.env.GOMODCACHE||execFileSync(process.env.CONNECT_GO||'go',['env','GOMODCACHE'],{encoding:'utf8'}).trim();
 const runtime=fs.readFileSync(path.join(cache,'github.com/wailsapp/wails/v3@v3.0.0-alpha.74/internal/assetserver/bundledassets/runtime.js'));
