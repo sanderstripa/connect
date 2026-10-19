@@ -35,3 +35,6 @@ frontend/playwright-report/
 /cmd/installer/chrome/
 
 /.tmp-native-*/
+
+/.connect-installer-source/
+/.tmp/

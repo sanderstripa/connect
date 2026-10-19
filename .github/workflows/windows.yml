@@ -47,6 +47,11 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: ./scripts/build-installer.ps1 -SkipApp
+      - name: Verify shared installer themes, localisation and button alignment
+        shell: pwsh
+        env:
+          PLAYWRIGHT_MODULE: ${{ github.workspace }}/frontend/node_modules/playwright
+        run: ./installer-core/test-ui.ps1 -OutputDirectory .tmp/installer-previews/shared
       - name: Test native installer window
         shell: pwsh
         run: ./scripts/test-installer-window.ps1
