@@ -42,3 +42,7 @@ Native preview attempt: a separate non-elevated copy was launched with a disposa
 ## Release authorization: 2026-10-19
 
 The user approved matte ribbon variant B and explicitly authorized publishing v0.2.3. This supersedes the earlier no-merge/no-release instruction after final checks pass. Release metadata is updated consistently; no VPN/application behavior changes are introduced. A native installer-window create/close smoke check is now required by the Windows workflow. The disposable review workflow using an already published payload was removed: release validation builds both application and installer from the same commit.
+
+## Window dragging correction: v0.2.4
+
+The globally declared async function chrome() in setup.js replaced window.chrome before the deferred Wails runtime loaded. WebView2 exposes its native bridge through window.chrome.webview, so dragging/native window controls could not invoke Windows. Rename the helper to prepareChrome(), retaining all API payloads and extension behavior. Free non-interactive window surfaces inherit the drag marker; buttons, inputs, labels and window controls explicitly opt out. The regression uses the actual bundled Wails runtime, a recording native bridge and real mouse gestures; it fails on the old global function and passes after the fix in both install and uninstall modes.
