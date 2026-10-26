@@ -4,6 +4,7 @@ import "io/fs"
 
 // Config describes presentation and capabilities, independently of installation code.
 type Config struct {
+	Icon         []byte `json:"-"`
 	ID           string `json:"id"`
 	Name         string `json:"name"`
 	Version      string `json:"version"`

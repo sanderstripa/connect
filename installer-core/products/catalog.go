@@ -15,6 +15,9 @@ func Version(id string) string { return Configure(id, "", nil).Version }
 //go:embed *.json
 var catalog embed.FS
 
+//go:embed vpn.png
+var vpnIcon []byte
+
 func Configure(id, path string, ribbon fs.FS) core.Config {
 	raw, err := catalog.ReadFile(id + ".json")
 	if err != nil {
@@ -29,5 +32,8 @@ func Configure(id, path string, ribbon fs.FS) core.Config {
 	}
 	c.Path = path
 	c.Ribbon = ribbon
+	if id == "connect" {
+		c.Icon = vpnIcon
+	}
 	return c
 }

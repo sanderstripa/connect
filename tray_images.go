@@ -1,6 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/core"
+)
+
+// A requested connection or a running core alone must never light up the tray.
+func trayConnected(state core.RuntimeState) bool {
+	return state.Running && state.CoreRunning && state.TunRunning && state.RouteSetupError == ""
+}
 
 func loadTrayImages() ([]byte, []byte) {
 	size := trayImageSize()

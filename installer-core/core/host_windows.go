@@ -152,6 +152,9 @@ func Run(config Config, adapter Adapter) error {
 		}
 	}
 	icon, _ := assets.ReadFile("web/assets/icon.png")
+	if len(config.Icon) > 0 {
+		icon = config.Icon
+	}
 	h.app = application.New(application.Options{Name: config.Name + " Setup", Icon: icon, Windows: application.WindowsOptions{WebviewUserDataPath: os.Getenv("WEBVIEW2_USER_DATA_FOLDER"), AdditionalBrowserArgs: strings.Fields(os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"))}, Assets: application.AssetOptions{Handler: h}, SingleInstance: &application.SingleInstanceOptions{UniqueID: "com.sanderstripa.installer." + config.ID, ExitCode: 0}})
 	window := h.app.Window.NewWithOptions(application.WebviewWindowOptions{Title: config.Name, Width: 840, Height: 540, MinWidth: 840, MinHeight: 540, MaxWidth: 840, MaxHeight: 540, DisableResize: true, Frameless: true, BackgroundColour: application.NewRGB(242, 240, 235)})
 	h.chooseFolder = func() (string, error) {

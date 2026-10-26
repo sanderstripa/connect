@@ -1,5 +1,6 @@
 /build/bin/
 /runtime/
+/.tools/
 .tmp/
 .task/
 
