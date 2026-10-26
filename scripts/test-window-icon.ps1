@@ -44,7 +44,7 @@ public static class ConnectWindowIconProbe {
  }
  public static bool Matches(IntPtr window, string executable) {
   IntPtr large,small;
-  if(ExtractIconEx(executable,0,out large,out small,1)!=1)throw new InvalidOperationException("Executable icon missing");
+  if(ExtractIconEx(executable,0,out large,out small,1)==0)throw new InvalidOperationException("Executable icon missing");
   try {
    return Equal(SendMessage(window,0x007f,IntPtr.Zero,IntPtr.Zero),small,GetSystemMetrics(49),GetSystemMetrics(50)) &&
           Equal(SendMessage(window,0x007f,(IntPtr)1,IntPtr.Zero),large,GetSystemMetrics(11),GetSystemMetrics(12));
