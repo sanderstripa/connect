@@ -517,7 +517,7 @@ func (b *Backend) tick() {
 	b.state.CoreRunning = b.coreProc.IsRunning() && !b.coreSwitching
 	b.state.TunRunning = b.tunRunningLocked()
 	b.state.ReverseRunning = b.revProc.IsRunning()
-	b.state.Running = b.state.CoreRunning
+	b.state.Running = b.state.CoreRunning && !b.startChecking
 	if b.routeState != nil && !b.state.TunRunning && !b.tunRecovering {
 		b.tunRecovering = true
 		needTunRecover = true

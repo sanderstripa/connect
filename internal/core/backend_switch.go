@@ -121,13 +121,6 @@ func (b *Backend) startSwitchedCore(ctx context.Context, plan proxyStartPlan, if
 	if err := b.preflightTunUpstream(ctx, plan.localPort, plan.routing, time.Now()); err != nil {
 		return err
 	}
-	probeURL := ""
-	if b.preflightTarget != "" {
-		probeURL = "http://" + b.preflightTarget
-	}
-	if err := checkProxyURL(ctx, probeURL, plan.localPort, 5*time.Second); err != nil {
-		return err
-	}
 	b.mu.Lock()
 	b.state.Running = true
 	b.state.CoreRunning = true

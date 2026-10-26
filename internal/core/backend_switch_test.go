@@ -132,6 +132,56 @@ func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 	if b.cfg.ActiveNodeID != "x" || !b.coreProc.IsRunning() || b.tunProc.PID() != pid {
 		t.Fatal("previous connection not restored")
 	}
+	// The engine starts and acknowledges SOCKS, but its upstream cannot carry
+	// healthy HTTP traffic. It must roll back just like a failed process start.
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(503) }))
+	defer failing.Close()
+	badPort := unusedSwitchPort(t)
+	startServer("xray", map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": badPort, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/switch"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"redirect": failing.Listener.Addr().String()}}}})
+	badNode, e := ParseEngineLink("vless://" + uuid + "@127.0.0.1:" + fmtPort(badPort) + "?type=xhttp&security=none&path=%2Fswitch")
+	if e != nil {
+		t.Fatal(e)
+	}
+	badNode.ID = "bad-http"
+	badNode.LocalPort = local
+	b.cfg.Nodes = append(b.cfg.Nodes, *badNode)
+	if e = b.SwitchNode(badNode.ID); e == nil {
+		t.Fatal("upstream HTTP failure accepted")
+	}
+	if b.cfg.ActiveNodeID != "x" || !b.coreProc.IsRunning() || b.tunProc.PID() != pid || b.routeState != route {
+		t.Fatal("HTTP failure did not preserve previous connection and TUN")
+	}
 }
 
 func fmtPort(p int) string { return fmt.Sprint(p) }
+
+func TestMonitorKeepsStartupPendingUntilValidation(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	root, e := filepath.Abs("../../runtime/bin")
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, e := NewBackendWithRuntimeFS(os.DirFS(root), ".")
+	if e != nil {
+		t.Fatal(e)
+	}
+	exe, e := os.Executable()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = b.coreProc.Start(exe, []string{"-test.run=^TestManagedProcessHelper$"}, []string{"SUDOKU_PROCESS_TEST=wait"}, "", nil); e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { b.coreProc.Stop(time.Second) })
+	b.kernelProbing = true // Keep this test completely offline.
+	b.startChecking = true
+	b.tick()
+	if b.state.Running || !b.state.CoreRunning {
+		t.Fatal("monitor announced a connection before traffic validation")
+	}
+	b.startChecking = false
+	b.tick()
+	if !b.state.Running {
+		t.Fatal("monitor did not expose validated running core")
+	}
+}

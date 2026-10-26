@@ -22,6 +22,7 @@ type Backend struct {
 	opMu            sync.Mutex
 	switchMu        sync.Mutex
 	coreSwitching   bool
+	startChecking   bool
 	preflightTarget string // Optional local target for isolated engine integration tests.
 	startMu         sync.Mutex
 	startOpID       uint64
@@ -422,6 +423,11 @@ func (b *Backend) StartProxy(req StartRequest) error {
 	startAttemptedAt := time.Now()
 
 	b.mu.Lock()
+	if b.startChecking {
+		b.mu.Unlock()
+		b.opMu.Unlock()
+		return errors.New("подключение ещё проверяется; дождитесь результата")
+	}
 	if b.state.Running {
 		b.mu.Unlock()
 		b.opMu.Unlock()
@@ -513,7 +519,11 @@ func (b *Backend) StartProxy(req StartRequest) error {
 		}
 	}
 
-	b.addLog("info", "app", fmt.Sprintf("starting sudoku core with config %s", sudokuCfgPath))
+	b.mu.Lock()
+	b.startChecking = true
+	b.mu.Unlock()
+	defer func() { b.mu.Lock(); b.startChecking = false; b.emitStateLocked(); b.mu.Unlock() }()
+	b.addLog("info", "app", fmt.Sprintf("starting %s core with config %s", protocolOf(nodeCopy), sudokuCfgPath))
 	if err := b.coreProc.Start(sudokuBin, engineArgs(nodeCopy, sudokuCfgPath, localPort), coreEnv, workDir, b.onCoreLog); err != nil {
 		b.mu.Lock()
 		b.state.LastError = err.Error()
@@ -541,7 +551,7 @@ func (b *Backend) StartProxy(req StartRequest) error {
 	b.state.ActiveNodeID = nodeCopy.ID
 	b.state.ActiveNodeName = nodeCopy.Name
 	b.state.StartedAtUnix = time.Now().UnixMilli()
-	b.state.Running = true
+	b.state.Running = false
 	b.cfg.LastStartedNode = nodeCopy.ID
 	_ = b.store.Save(b.cfg)
 	b.emitStateLocked()
@@ -842,6 +852,15 @@ func (b *Backend) StartProxy(req StartRequest) error {
 					return fmt.Errorf("mapdns check failed: %w", err)
 				}
 			}
+			if runtime.GOOS == "windows" {
+				if routeCtx == nil {
+					return errors.New("TUN routes are not ready for HTTPS verification")
+				}
+				if err := checkTunHTTPS(hctx, routeCtx.TunIndex); err != nil {
+					return fmt.Errorf("системный VPN не передаёт HTTPS после настройки DNS/маршрутов: %w", err)
+				}
+				b.addLog("info", "health", "system HTTPS verified through the pinned TUN adapter")
+			}
 			return nil
 		}()
 		cancelHC()
@@ -947,6 +966,7 @@ func (b *Backend) StartProxy(req StartRequest) error {
 	b.pfMgr.Apply(portForwards)
 
 	b.mu.Lock()
+	b.state.Running = b.coreProc.IsRunning()
 	b.emitStateLocked()
 	b.mu.Unlock()
 	return nil
@@ -960,24 +980,25 @@ func (b *Backend) preflightTunUpstream(ctx context.Context, localPort int, routi
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	preflightCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	preflightCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	socksAddr := net.JoinHostPort(localLoopbackIPv4, fmt.Sprintf("%d", localPort))
 	if err := waitForTCPReady(preflightCtx, socksAddr, 2*time.Second); err != nil {
 		return fmt.Errorf("TUN preflight failed before changing system routes: core SOCKS proxy is not ready: %w", err)
 	}
-	target := b.preflightTarget
-	if target == "" {
-		target = "1.1.1.1:443"
+	probeURL := ""
+	if b.preflightTarget != "" {
+		probeURL = "http://" + b.preflightTarget
 	}
-	if err := healthCheckSOCKS5Connect(preflightCtx, socksAddr, target, 3*time.Second); err != nil {
+	if err := checkProxyURL(preflightCtx, probeURL, localPort, 8*time.Second); err != nil {
+		b.addLog("error", "health", err.Error())
 		if b.hasUpstreamHTTP403Since(attemptedAt) {
 			return errors.New("TUN preflight failed before changing system routes: upstream returned HTTP 403; check the node key and HTTPMask host/path, and ensure the server uses a compatible sudoku version")
 		}
-		return fmt.Errorf("TUN preflight failed before changing system routes: upstream proxy is unavailable: %w", err)
+		return fmt.Errorf("TUN не включён: проверка передачи данных не пройдена: %w", err)
 	}
-	b.addLog("info", "tun", "upstream proxy preflight passed before Windows route switch")
+	b.addLog("info", "tun", "HTTPS upstream preflight passed before Windows route switch")
 	return nil
 }
 

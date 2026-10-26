@@ -26,6 +26,8 @@ Sudoku ↔ Xray switching retains TUN, DNS and routes when server addresses are 
 
 Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles are stored in `%APPDATA%\connect-app`.
 
+Before applying desktop TUN routes, Connect 0.2.8 checks real HTTPS traffic through SOCKS using two independent control endpoints. A listening local core or SOCKS CONNECT reply alone is insufficient. After configuring Windows routes and DNS, a second HTTPS check pins sockets to the actual TUN adapter, so a working physical route cannot hide a failed tunnel. Startup readiness retries briefly within a fixed deadline without recreating the connection. Failed profile switching restores the previous connection while retaining TUN/DNS. TLS certificates remain verified; health probes never fall back to a direct connection. A Cloudflare challenge on ChatGPT can still require a different exit IP or browser verification; it is distinct from transport failure.
+
 ## Updates and rollback
 
 Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku, Mist and AmneziaWG have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
