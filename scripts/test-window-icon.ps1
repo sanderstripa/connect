@@ -1,7 +1,10 @@
 # Disposable Windows test: check the actual application's window icons.
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
-Add-Type @'
+$drawingReferences=if($PSVersionTable.PSVersion.Major -ge 6){
+ @('System.Drawing.Common','System.Drawing.Primitives','System.ComponentModel.Primitives') + @(Get-ChildItem $PSHOME -Filter 'System.Private.Windows.*.dll' | ForEach-Object FullName)
+}else{@('System.Drawing')}
+Add-Type -ReferencedAssemblies $drawingReferences @'
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
