@@ -205,9 +205,15 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		script += "$l=$w.CreateShortcut(" + quote(dest) + "); $l.TargetPath=" + quote(filepath.Join(dir, "Connect.exe")) + "; $l.WorkingDirectory=" + quote(dir) + "; $l.IconLocation=" + quote(iconPath+",0") + "; $l.Save(); "
 	}
 	// Preserve pins and update only shortcuts whose target is this installation.
+	target := filepath.Join(dir, "Connect.exe")
+	resolvedTarget := target
+	if longPath, e := filepath.EvalSymlinks(target); e == nil {
+		resolvedTarget = longPath
+	}
 	script += "$pins=Join-Path $env:APPDATA 'Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar'; " +
 		"if(Test-Path -LiteralPath $pins){Get-ChildItem -LiteralPath $pins -Filter '*.lnk' | ForEach-Object {" +
-		"$l=$w.CreateShortcut($_.FullName); if([string]::Equals($l.TargetPath," + quote(filepath.Join(dir, "Connect.exe")) + ",[StringComparison]::OrdinalIgnoreCase)){" +
+		"$l=$w.CreateShortcut($_.FullName); if([string]::Equals($l.TargetPath," + quote(target) + ",[StringComparison]::OrdinalIgnoreCase) -or " +
+		"[string]::Equals($l.TargetPath," + quote(resolvedTarget) + ",[StringComparison]::OrdinalIgnoreCase)){" +
 		"$l.IconLocation=" + quote(iconPath+",0") + "; $l.Save()}}}; "
 	if err = powershell(script); err != nil {
 		return err
