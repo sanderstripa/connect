@@ -6,6 +6,24 @@ using System.Globalization;
 using System.Xml;
 using System.Text.RegularExpressions;
 public static class ConnectBrandRenderer {
+ // PNG raster export from the approved alpha-transparent design masters.
+ // The old SVG renderer below remains for legacy consumers of connect.svg.
+ public static void Resize(string input,string output,int size) {
+  using(var source=new Bitmap(input))
+  using(var result=new Bitmap(size,size,PixelFormat.Format32bppArgb))
+  using(var g=Graphics.FromImage(result))
+  using(var attrs=new ImageAttributes()) {
+   g.CompositingMode=CompositingMode.SourceCopy;
+   g.CompositingQuality=CompositingQuality.HighQuality;
+   g.InterpolationMode=InterpolationMode.HighQualityBicubic;
+   g.SmoothingMode=SmoothingMode.AntiAlias;
+   g.PixelOffsetMode=PixelOffsetMode.HighQuality;
+   attrs.SetWrapMode(WrapMode.TileFlipXY);
+   g.Clear(Color.Transparent);
+   g.DrawImage(source,new Rectangle(0,0,size,size),0,0,source.Width,source.Height,GraphicsUnit.Pixel,attrs);
+   result.Save(output,ImageFormat.Png);
+  }
+ }
  static float N(string value) { return float.Parse(value,CultureInfo.InvariantCulture); }
  static GraphicsPath Path(string data) {
   var tokens=Regex.Matches(data,@"[MLCZ]|-?\d+(?:\.\d+)?");

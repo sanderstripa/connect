@@ -14,7 +14,7 @@ The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENT
 ## Windows
 
 - Connect with one button and switch between saved protocol profiles.
-- Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
+- Route device traffic through TUN; the tray shows the transparent folded-diamond mark in graphite/grey when disconnected and graphite/olive when the core and tunnel are active. The desktop and installer use the circular olive/graphite app icon.
 - Import Sudoku links/subscriptions, VLESS, VMess, Trojan, a Mist client configuration or an AmneziaWG `.conf` profile.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
 - Switch between Russian and English inside Settings → Appearance; your language is saved immediately.
