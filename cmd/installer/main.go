@@ -37,7 +37,7 @@ var chromeFiles embed.FS
 //go:embed web/assets/icon.png
 var icon []byte
 
-var version = "0.2.9" // Overridden from the application package by build-installer.ps1.
+var version = "0.3.0" // Overridden from the application package by build-installer.ps1.
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\ConnectApp`
 
 var machineRegistry = registry.LOCAL_MACHINE

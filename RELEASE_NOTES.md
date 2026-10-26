@@ -1,3 +1,9 @@
+CONNECT 0.3.0
+
+фикс
+
+---
+
 CONNECT 0.2.9 - Windows 10/11 x64
 
 - Approved olive/graphite variant A icons across the client, installer, shortcuts and extension.

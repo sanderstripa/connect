@@ -7,9 +7,12 @@ package adaptertest
 import (
 	"bytes"
 	"connect-installer.local/core/core"
+	"connect-installer.local/core/products"
 	"golang.org/x/sys/windows/registry"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -128,10 +131,26 @@ func Lifecycle(t *testing.T, id, executable string, newAdapter func() core.Adapt
 		}()
 	}
 	updater := newAdapter()
+	var pinned, otherPinned string
+	if id == "connect" {
+		pins := filepath.Join(os.Getenv("APPDATA"), `Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar`)
+		if err = os.MkdirAll(pins, 0755); err != nil { t.Fatal(err) }
+		pinned = filepath.Join(pins, "Connect-CI-Pinned-Test.lnk")
+		otherPinned = filepath.Join(pins, "Connect-CI-Unrelated-Test.lnk")
+		t.Cleanup(func(){ _ = os.Remove(pinned); _ = os.Remove(otherPinned) })
+		createShortcut(t, pinned, filepath.Join(root, executable), filepath.Join(root, executable)+",0")
+		createShortcut(t, otherPinned, filepath.Join(os.Getenv("WINDIR"), "System32", "notepad.exe"), "shell32.dll,0")
+	}
 	o.Language = "en"
 	o.Theme = "light"
 	if err = updater.Install(o); err != nil {
 		t.Fatalf("update: %v", err)
+	}
+	if id == "connect" {
+		iconPath := filepath.Join(root, "Connect-"+products.Version("connect")+".ico")
+		if got, e := os.ReadFile(iconPath); e != nil || !bytes.Equal(got, products.VPNIconICO()) { t.Fatal("installed icon differs", e) }
+		if got := shortcutIcon(t, pinned); !strings.EqualFold(got, iconPath+",0") { t.Fatalf("pinned icon not updated: %q", got) }
+		if got := shortcutIcon(t, otherPinned); !strings.EqualFold(got, "shell32.dll,0") { t.Fatalf("unrelated pin changed: %q", got) }
 	}
 	if data, e := os.ReadFile(foreign); e != nil || !bytes.Equal(data, sentinel) {
 		t.Fatal("update lost a user file", e)
@@ -152,4 +171,18 @@ func Lifecycle(t *testing.T, id, executable string, newAdapter func() core.Adapt
 		t.Error(e)
 	}
 	t.Log("real clean install, registered-path update, preserved user data and uninstall passed")
+}
+
+func psQuote(s string) string { return "'"+strings.ReplaceAll(s, "'", "''")+"'" }
+func createShortcut(t *testing.T, path, target, icon string) {
+	t.Helper()
+	script := "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut("+psQuote(path)+"); $l.TargetPath="+psQuote(target)+"; $l.IconLocation="+psQuote(icon)+"; $l.Save()"
+	if out, err := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput(); err != nil { t.Fatalf("create pinned shortcut: %s: %v", out, err) }
+}
+func shortcutIcon(t *testing.T, path string) string {
+	t.Helper()
+	script := "$w=New-Object -ComObject WScript.Shell; $w.CreateShortcut("+psQuote(path)+").IconLocation"
+	out, err := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
+	if err != nil { t.Fatalf("read pinned shortcut: %s: %v", out, err) }
+	return strings.TrimSpace(string(out))
 }
