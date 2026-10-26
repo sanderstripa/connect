@@ -18,6 +18,11 @@ var catalog embed.FS
 //go:embed vpn.png
 var vpnIcon []byte
 
+//go:embed vpn.ico
+var vpnIconICO []byte
+
+func VPNIconICO() []byte { return vpnIconICO }
+
 func Configure(id, path string, ribbon fs.FS) core.Config {
 	raw, err := catalog.ReadFile(id + ".json")
 	if err != nil {

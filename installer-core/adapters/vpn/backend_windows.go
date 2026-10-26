@@ -163,6 +163,12 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 	if err = writeAtomic(filepath.Join(dir, "Connect.exe"), payload); err != nil {
 		return fmt.Errorf("close Connect before updating: %w", err)
 	}
+	// A versioned icon path makes existing pinned shortcuts pick up upgrades
+	// even when Explorer has cached the icon of Connect.exe at the same path.
+	iconPath := filepath.Join(dir, "Connect-"+version+".ico")
+	if err = writeAtomic(iconPath, products.VPNIconICO()); err != nil {
+		return err
+	}
 	s.progress.Store(45)
 	if chrome {
 		if err = installChrome(dir); err != nil {
@@ -196,8 +202,13 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		destinations = append(destinations, filepath.Join(os.Getenv("PUBLIC"), "Desktop", "Connect.lnk"))
 	}
 	for _, dest := range destinations {
-		script += "$l=$w.CreateShortcut(" + quote(dest) + "); $l.TargetPath=" + quote(filepath.Join(dir, "Connect.exe")) + "; $l.WorkingDirectory=" + quote(dir) + "; $l.IconLocation=" + quote(filepath.Join(dir, "Connect.exe")+",0") + "; $l.Save(); "
+		script += "$l=$w.CreateShortcut(" + quote(dest) + "); $l.TargetPath=" + quote(filepath.Join(dir, "Connect.exe")) + "; $l.WorkingDirectory=" + quote(dir) + "; $l.IconLocation=" + quote(iconPath+",0") + "; $l.Save(); "
 	}
+	// Preserve pins and update only shortcuts whose target is this installation.
+	script += "$pins=Join-Path $env:APPDATA 'Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar'; " +
+		"if(Test-Path -LiteralPath $pins){Get-ChildItem -LiteralPath $pins -Filter '*.lnk' | ForEach-Object {" +
+		"$l=$w.CreateShortcut($_.FullName); if([string]::Equals($l.TargetPath," + quote(filepath.Join(dir, "Connect.exe")) + ",[StringComparison]::OrdinalIgnoreCase)){" +
+		"$l.IconLocation=" + quote(iconPath+",0") + "; $l.Save()}}}; "
 	if err = powershell(script); err != nil {
 		return err
 	}
@@ -226,7 +237,7 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		return err
 	}
 	s.dir, s.installed, s.chrome = dir, true, chrome
-	refreshShellIcons(append([]string{filepath.Join(dir, "Connect.exe"), filepath.Join(dir, "Uninstall.exe")}, destinations...)...)
+	refreshShellIcons(append([]string{filepath.Join(dir, "Connect.exe"), filepath.Join(dir, "Uninstall.exe"), iconPath}, destinations...)...)
 	s.progress.Store(100)
 	return nil
 }
@@ -242,6 +253,9 @@ func (s *setup) remove() error {
 	// Remove the app first. A running app leaves everything intact and reports an error.
 	if err = os.Remove(filepath.Join(dir, "Connect.exe")); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("close Connect before uninstalling: %w", err)
+	}
+	if err = os.Remove(filepath.Join(dir, "Connect-"+version+".ico")); err != nil && !os.IsNotExist(err) {
+		return err
 	}
 	if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
 		return err

@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-const AppVersion = "0.2.9"
+const AppVersion = "0.3.0"
 
 var operations sync.Mutex
 

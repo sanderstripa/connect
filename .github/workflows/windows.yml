@@ -45,6 +45,9 @@ jobs:
           npx playwright install chromium
           npm test
           if ($LASTEXITCODE -ne 0) { throw 'Interface tests failed' }
+      - name: Verify actual Windows window icons
+        shell: pwsh
+        run: ./scripts/test-window-icon.ps1
       - name: Build installer
         shell: pwsh
         run: ./scripts/build-installer.ps1 -SkipApp
@@ -92,4 +95,16 @@ jobs:
           } else {
             gh release create $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip build/bin/Connect-Mist-windows-amd64.zip build/bin/Connect-AmneziaWG-windows-amd64.zip --latest --title "Connect $env:GITHUB_REF_NAME" --notes-file build/windows/release-notes.md
           }
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+      - name: Publish 0.3.0 after main passes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content frontend/package.json -Raw | ConvertFrom-Json).version
+          if ($version -ne '0.3.0') { exit 0 }
+          gh release view v0.3.0 *> $null
+          if ($LASTEXITCODE -eq 0) { exit 0 }
+          gh release create v0.3.0 build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip build/bin/Connect-Mist-windows-amd64.zip build/bin/Connect-AmneziaWG-windows-amd64.zip --target $env:GITHUB_SHA --latest --title 'Connect v0.3.0' --notes-file build/windows/release-notes.md
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

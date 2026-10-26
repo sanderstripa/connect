@@ -172,6 +172,7 @@ func main() {
 		},
 	})
 
+	configureWindowIcon(mainWindow)
 	persistMainPosition = bindWindowPosition(app, mainWindow, startHidden)
 	mainWindow.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		persistMainPosition()
