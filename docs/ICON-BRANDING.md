@@ -40,7 +40,11 @@ as a successful-connect signal.
 
 Do not add square badges, status dots, text, or alternate icon geometry without
 separate design approval. Existing pinned Windows shortcuts can cache the old
-exe icon until Explorer refreshes them or they are repinned.
+exe icon until Explorer refreshes them or they are repinned. After installation
+or upgrade, the VPN installer sends targeted `SHChangeNotify(SHCNE_UPDATEITEM)`
+notifications for the replaced executables and generated shortcuts. It does not
+delete the user's shell cache or restart Explorer. Pinned shortcut refresh still
+needs visual acceptance on a real upgrade.
 
 Pixel-size contact sheet (composited backgrounds, not Windows shell screenshots):
 
