@@ -243,7 +243,18 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		return err
 	}
 	s.dir, s.installed, s.chrome = dir, true, chrome
-	refreshShellIcons(append([]string{filepath.Join(dir, "Connect.exe"), filepath.Join(dir, "Uninstall.exe"), iconPath}, destinations...)...)
+	changed := append([]string{filepath.Join(dir, "Connect.exe"), filepath.Join(dir, "Uninstall.exe"), iconPath}, destinations...)
+	// Ask Explorer to refresh pinned shortcut views too; rewriting a .lnk alone
+	// can otherwise leave its already-cached taskbar image visible.
+	pinDir := filepath.Join(os.Getenv("APPDATA"), `Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar`)
+	if entries, e := os.ReadDir(pinDir); e == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.EqualFold(filepath.Ext(entry.Name()), ".lnk") {
+				changed = append(changed, filepath.Join(pinDir, entry.Name()))
+			}
+		}
+	}
+	refreshShellIcons(changed...)
 	s.progress.Store(100)
 	return nil
 }
