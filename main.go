@@ -216,7 +216,7 @@ func main() {
 				return
 			}
 			state := appService.GetState()
-			connected := state.Running && state.CoreRunning && state.TunRunning && state.RouteSetupError == ""
+			connected := trayConnected(state)
 			if connected == wasConnected {
 				continue
 			}

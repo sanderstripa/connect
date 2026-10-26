@@ -14,7 +14,7 @@ The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENT
 ## Windows
 
 - Connect with one button and switch between saved protocol profiles.
-- Route device traffic through TUN; the tray shows the application mark with grey lines when off and green lines when the core and tunnel are active.
+- Route device traffic through TUN; the tray shows the transparent folded-diamond mark in graphite/grey when disconnected and graphite/olive when the core and tunnel are active. The desktop and installer use the circular olive/graphite app icon.
 - Import Sudoku links/subscriptions, VLESS, VMess, Trojan, a Mist client configuration or an AmneziaWG `.conf` profile.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
 - Switch between Russian and English inside Settings → Appearance; your language is saved immediately.
@@ -90,4 +90,4 @@ Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` `Connect-Chrome.zip` and t
 
 Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Mist builds from included sources; Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
 
-The signal-and-peak identity is maintained in [connect.svg](build/branding/connect.svg). All application, installer, extension, tray and platform icons are generated from this vector source during the Windows build.
+The approved olive/graphite variant A is maintained in [build/branding/source](build/branding/source). Windows application, installer and extension icons use the circular master; the tray uses separate transparent OFF/ON masters. See [ICON-BRANDING.md](docs/ICON-BRANDING.md) for regeneration and verification. The legacy SVG is used only by the macOS template tray.

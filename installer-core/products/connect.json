@@ -3,7 +3,7 @@
   "repository": "https://github.com/sanderstripa/connect",
   "sourceCommit": "af466c4682c622a14b26992df34933e737792193",
   "name": "CONNECT VPN",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "installScope": "machine",
   "engine": "Go",
   "chrome": true,

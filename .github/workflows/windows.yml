@@ -31,6 +31,7 @@ jobs:
         run: |
           node scripts/verify-branding.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Branding verification failed' }
+          ./scripts/verify-icon-alpha.ps1
           node scripts/test-extension.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Extension tests failed' }
           node scripts/test-native.mjs
@@ -47,6 +48,11 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: ./scripts/build-installer.ps1 -SkipApp
+      - name: Verify compiled application and installer icons
+        shell: pwsh
+        run: |
+          node scripts/verify-windows-icons.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Compiled icon verification failed' }
       - name: Verify shared installer themes, localisation and button alignment
         shell: pwsh
         env:
@@ -69,6 +75,10 @@ jobs:
             build/bin/Connect-Chrome.zip
             build/bin/Connect-Mist-windows-amd64.zip
             build/bin/Connect-AmneziaWG-windows-amd64.zip
+            build/bin/Connect-Setup.exe.build.json
+            build/windows/icon.ico
+            build/windows/installer.ico
+            build/tray/tray-*.ico
           if-no-files-found: error
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/v')

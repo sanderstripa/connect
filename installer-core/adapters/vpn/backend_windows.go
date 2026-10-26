@@ -226,6 +226,7 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		return err
 	}
 	s.dir, s.installed, s.chrome = dir, true, chrome
+	refreshShellIcons(append([]string{filepath.Join(dir, "Connect.exe"), filepath.Join(dir, "Uninstall.exe")}, destinations...)...)
 	s.progress.Store(100)
 	return nil
 }
