@@ -10,7 +10,9 @@ foreach($size in @(16,20,24,28,32,36,40,48,64,96,128,256)) {
    $transparent=0;$opaque=0
    for($y=0;$y -lt $size;$y++){for($x=0;$x -lt $size;$x++){
     $p=$image.GetPixel($x,$y)
-    if($p.A -eq 0){$transparent++}
+    # Count mostly transparent antialiased edge pixels as exterior. At 16px
+    # a rounded square has only four fully zero-alpha pixels.
+    if($p.A -lt 128){$transparent++}
     if($p.A -gt 240){$opaque++}
    }}
    foreach($xy in @(@(0,0),@(($size-1),0),@(0,($size-1)),@(($size-1),($size-1)))){
