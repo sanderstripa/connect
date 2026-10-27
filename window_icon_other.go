@@ -5,3 +5,5 @@ package main
 import "github.com/wailsapp/wails/v3/pkg/application"
 
 func configureWindowIcon(application.Window) {}
+
+func updateWindowConnectionIcon(application.Window, bool) {}

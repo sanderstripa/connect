@@ -226,6 +226,7 @@ func main() {
 				if quitting.Load() {
 					return
 				}
+				updateWindowConnectionIcon(mainWindow, connected)
 				if connected {
 					tray.SetIcon(trayOn).SetDarkModeIcon(trayOn).SetTooltip("Connect — подключено")
 				} else {

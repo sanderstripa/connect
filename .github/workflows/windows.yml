@@ -96,15 +96,16 @@ jobs:
             gh release create $env:GITHUB_REF_NAME build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip build/bin/Connect-Mist-windows-amd64.zip build/bin/Connect-AmneziaWG-windows-amd64.zip --latest --title "Connect $env:GITHUB_REF_NAME" --notes-file build/windows/release-notes.md
           }
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
-      - name: Publish 0.3.0 after main passes
+      - name: Publish verified 0.3.1 icon refresh
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $version = (Get-Content frontend/package.json -Raw | ConvertFrom-Json).version
-          if ($version -ne '0.3.0') { exit 0 }
-          gh release view v0.3.0 *> $null
-          if ($LASTEXITCODE -eq 0) { exit 0 }
-          gh release create v0.3.0 build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip build/bin/Connect-Mist-windows-amd64.zip build/bin/Connect-AmneziaWG-windows-amd64.zip --target $env:GITHUB_SHA --latest --title 'Connect v0.3.0' --notes-file build/windows/release-notes.md
-          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+          gh release view v0.3.1 *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'Refusing to overwrite an existing release' }
+          $files = @('build/bin/Connect.exe','build/bin/Connect-Setup.exe','build/bin/Connect-Chrome.zip','build/bin/Connect-Mist-windows-amd64.zip','build/bin/Connect-AmneziaWG-windows-amd64.zip')
+          $sums = foreach ($file in $files) { "$((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
+          $sums | Set-Content -LiteralPath SHA256SUMS.txt -Encoding ascii
+          gh release create v0.3.1 build/bin/Connect.exe build/bin/Connect-Setup.exe build/bin/Connect-Chrome.zip build/bin/Connect-Mist-windows-amd64.zip build/bin/Connect-AmneziaWG-windows-amd64.zip SHA256SUMS.txt --target $env:GITHUB_SHA --latest --title 'Connect v0.3.1' --notes-file RELEASE_NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'Verified release publication failed' }

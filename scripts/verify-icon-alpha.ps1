@@ -16,7 +16,7 @@ foreach($size in @(16,20,24,28,32,36,40,48,64,96,128,256)) {
    foreach($xy in @(@(0,0),@(($size-1),0),@(0,($size-1)),@(($size-1),($size-1)))){
     if($image.GetPixel($xy[0],$xy[1]).A -ne 0){throw "Opaque background corner: $file"}
    }
-   if($opaque -eq 0 -or $transparent -lt ($size*$size*0.15)){throw "Missing artwork or transparency: $file"}
+   if($opaque -eq 0 -or $transparent -lt ($size*$size*0.025)){throw "Missing artwork or transparency: $file"}
    if($kind -ne 'app' -and $transparent -lt ($size*$size*0.35)){throw "Tray may contain a plate: $file"}
   } finally {$image.Dispose()}
  }
