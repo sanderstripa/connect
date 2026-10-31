@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/SUDOKU-ASCII/sudoku/pkg/connutil"
 	"github.com/SUDOKU-ASCII/sudoku/pkg/logx"
 )
 
@@ -45,6 +46,11 @@ type countingConn struct {
 	net.Conn
 	kind int
 }
+
+// Preserve half-close semantics while counting traffic. HTTP mask streams rely
+// on keeping the other direction alive after a peer finishes writing.
+func (c *countingConn) CloseWrite() error { return connutil.TryCloseWrite(c.Conn) }
+func (c *countingConn) CloseRead() error  { return connutil.TryCloseRead(c.Conn) }
 
 func (c *countingConn) Read(p []byte) (int, error) {
 	n, err := c.Conn.Read(p)

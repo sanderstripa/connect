@@ -1,11 +1,8 @@
 package app
 
 import (
-	"bufio"
 	"bytes"
-	"io"
 	"net"
-	"net/http"
 	"testing"
 	"time"
 )
@@ -19,20 +16,14 @@ func TestHTTPProxyPreservesPrefetchedTunnelBytes(t *testing.T) {
 		_, _ = client.Write(append([]byte("CONNECT auth.openai.com:443 HTTP/1.1\r\nHost: auth.openai.com:443\r\n\r\n"), payload...))
 	}()
 	_ = server.SetReadDeadline(time.Now().Add(time.Second))
-	reader := bufio.NewReader(server)
-	req, err := http.ReadRequest(reader)
+	req, early, err := readProxyRequest(server)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if req.Method != http.MethodConnect {
+	if req.Method != "CONNECT" {
 		t.Fatal(req.Method)
 	}
-	if reader.Buffered() != len(payload) {
-		t.Fatal("test must prefetch the entire TLS payload")
-	}
-	got := make([]byte, len(payload))
-	_, err = io.ReadFull(&httpBufferedConn{Conn: server, reader: reader}, got)
-	if err != nil || !bytes.Equal(got, payload) {
-		t.Fatalf("TLS bytes lost: %x, %v", got, err)
+	if !bytes.Equal(early, payload) {
+		t.Fatalf("TLS bytes lost: %x", early)
 	}
 }

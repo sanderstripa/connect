@@ -1,7 +1,7 @@
 # Build provenance
 
 - Visual/application foundation: sanderstripa/sudoku-app, commit fcf7f68b4d31c17ecfe51605ee9b77ad3d4e6c0c.
-- Sudoku core: SUDOKU-ASCII/sudoku v0.5.1, commit 4889b53cb35355123bebd40e6c76a9582de7c23d, with inherited source patches.
+- Sudoku core: SUDOKU-ASCII/sudoku v0.5.2-1, commit b1d1f0e767653d2c70e2ff814a01264c7dedf1f4, with inherited source patches.
 - HEV: 2.17.1 Windows x64 distribution, including Wintun and MSYS2 runtime.
 - Xray: official v26.3.27 Windows x64 archive. SHA256: d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad.
   Executable SHA256: 15c2d007954ac53ba69b80ec91242786b3c0b71d52649165b4ca1d5cc96ef8f1.

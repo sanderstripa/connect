@@ -61,7 +61,7 @@ func matchDirectAddress(mgrs *routeManagers, addr string, ip net.IP) (bool, stri
 	}
 	directAddressNames.Unlock()
 	for _, name := range names {
-		if ok, _, _ := matchRuleManager(mgrs, routeActionDirect, net.JoinHostPort(name, "443"), nil); ok {
+		if _, ok := mgrs.match(routeActionDirect, net.JoinHostPort(name, "443"), nil); ok {
 			return true, "DIRECT/DNS-IP(" + name + ")"
 		}
 	}

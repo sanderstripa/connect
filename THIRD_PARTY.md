@@ -1,7 +1,7 @@
 # Third-party components
 
 * sudoku-desktop — Copyright (C) 2026 saba, GPL-3.0-or-later. https://github.com/SUDOKU-ASCII/sudoku-desktop
-* Sudoku protocol core v0.5.1 — https://github.com/SUDOKU-ASCII/sudoku ; see upstream LICENSE.
+* Sudoku protocol core v0.5.2-1 — https://github.com/SUDOKU-ASCII/sudoku ; see upstream LICENSE.
 * HEV socks5 tunnel v2.17.1 — https://github.com/heiher/hev-socks5-tunnel ; MIT.
 * Wintun — https://www.wintun.net/ ; see upstream distribution license.
 * MSYS2 runtime — https://www.msys2.org/ ; runtime licensing follows the HEV Windows distribution.

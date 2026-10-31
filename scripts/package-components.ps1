@@ -8,7 +8,8 @@ $connectManifest['xray.exe']=@{version=('v'+$Matches[1]);sha256=(Get-FileHash (J
 $connectSudoku=& go version -m (Join-Path $connectBin 'sudoku.exe')
 $connectSudokuVersion=($connectSudoku | Select-String '^\s+mod\s+github.com/SUDOKU-ASCII/sudoku\s+(\S+)' | Select-Object -First 1).Matches.Groups[1].Value
 if(-not $connectSudokuVersion){throw 'Cannot identify Sudoku version'}
-$connectManifest['sudoku.exe']=@{version=$connectSudokuVersion;sha256=(Get-FileHash (Join-Path $connectBin 'sudoku.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$connectAdapterVersion=(Get-Content (Join-Path $connectRoot 'frontend/package.json') -Raw | ConvertFrom-Json).version
+$connectManifest['sudoku.exe']=@{version=($connectSudokuVersion+'+connect.'+$connectAdapterVersion);sha256=(Get-FileHash (Join-Path $connectBin 'sudoku.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
 $connectMist=& (Join-Path $connectBin 'mist-client.exe') -version
 if($LASTEXITCODE -ne 0 -or -not $connectMist){throw 'Cannot identify Mist version'}
 $connectManifest['mist-client.exe']=@{version='v0.1.8';build=$connectMist;sha256=(Get-FileHash (Join-Path $connectBin 'mist-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -20,3 +21,5 @@ New-Item -ItemType Directory -Force (Join-Path $connectRoot 'build/bin') | Out-N
 Compress-Archive -LiteralPath (Join-Path $connectBin 'mist-client.exe') -DestinationPath (Join-Path $connectRoot 'build/bin/Connect-Mist-windows-amd64.zip') -Force
 
 Compress-Archive -LiteralPath (Join-Path $connectBin 'awg-client.exe') -DestinationPath (Join-Path $connectRoot 'build/bin/Connect-AmneziaWG-windows-amd64.zip') -Force
+
+Compress-Archive -LiteralPath (Join-Path $connectBin 'sudoku.exe') -DestinationPath (Join-Path $connectRoot ("build/bin/Connect-Sudoku-"+$connectSudokuVersion+"-windows-amd64.zip")) -Force

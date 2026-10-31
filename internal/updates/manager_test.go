@@ -3,6 +3,7 @@ package updates
 import (
 	"archive/zip"
 	"bytes"
+	"debug/buildinfo"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -205,5 +206,57 @@ func TestApplicationRollbackUsesCachedInstallerOffline(t *testing.T) {
 	saved, e := os.ReadFile(result.Installer)
 	if e != nil || !bytes.Equal(saved, exe) {
 		t.Fatal("wrong cached installer")
+	}
+}
+
+func TestSudokuCatalogKeepsProtocolAndAdapterBuildVersions(t *testing.T) {
+	m, releases, _ := fixture(t)
+	*releases = []githubRelease{
+		{Tag: "v0.5.2-1", Assets: []asset{{Name: "sudoku-windows-amd64.zip", Digest: "sha256:" + hash([]byte("official"))}}},
+		{Tag: "v0.3.2", Assets: []asset{{Name: "Connect-Sudoku-v0.5.2-1-windows-amd64.zip", Digest: "sha256:" + hash([]byte("compatible"))}}},
+	}
+	status := m.Status("sudoku", true, false)
+	if status.Error != "" || status.Source != "sanderstripa/connect" || len(status.Releases) != 1 || status.Releases[0].Version != "v0.5.2-1+connect.0.3.2" {
+		t.Fatalf("unexpected compatible catalog: %+v", status)
+	}
+}
+
+func TestOfficialSudokuSlotFallsBackWithoutDeletingItsFiles(t *testing.T) {
+	m, _, _ := fixture(t)
+	exe := executable(t)
+	if verifyExecutable(exe) != nil {
+		t.Skip("Windows executable fixture")
+	}
+	g, err := m.store("sudoku", "v0.5.2-1", map[string][]byte{"sudoku.exe": exe})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = m.save("sudoku", state{Current: g}); err != nil {
+		t.Fatal(err)
+	}
+	baseline := filepath.Join(t.TempDir(), "bundled-sudoku.exe")
+	m.Baselines["sudoku"] = Baseline{Version: "v0.5.2-1+connect.0.3.2", Files: map[string]string{"sudoku.exe": baseline}}
+	path, err := m.Resolve("sudoku", "sudoku.exe", baseline)
+	if err != nil || path != baseline {
+		t.Fatal("incompatible slot overrode compatible baseline", path, err)
+	}
+	if got := m.Status("sudoku", false, false).Installed; got != m.Baselines["sudoku"].Version {
+		t.Fatal("wrong active version", got)
+	}
+	dir, _ := m.slot("sudoku", g)
+	if _, err = os.Stat(filepath.Join(dir, "sudoku.exe")); err != nil {
+		t.Fatal("previous binary was removed", err)
+	}
+}
+
+func TestBundledSudokuHasRequiredDesktopAdapters(t *testing.T) {
+	path := filepath.Join("..", "..", "runtime", "bin", "windows-amd64", "sudoku.exe")
+	_, statErr := os.Stat(path)
+	if os.IsNotExist(statErr) {
+		t.Skip("bundled Windows runtime not built on this host")
+	}
+	info, err := buildinfo.ReadFile(path)
+	if err != nil || !compatibleSudokuBuild(info) {
+		t.Fatal("built core lacks desktop adapters or MPTCP mitigation", err)
 	}
 }

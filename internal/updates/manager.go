@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"debug/buildinfo"
 	"debug/pe"
 	"encoding/hex"
 	"encoding/json"
@@ -17,12 +18,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 )
 
-const AppVersion = "0.3.1"
+const AppVersion = "0.3.2"
 
 var operations sync.Mutex
 
@@ -86,10 +89,60 @@ var sources = map[string]source{
 	"amneziawg": {"sanderstripa/connect", "Connect-AmneziaWG-windows-amd64.zip", []string{"awg-client.exe"}},
 	"app":       {"sanderstripa/connect", "Connect-Setup.exe", nil},
 	"xray":      {"XTLS/Xray-core", "Xray-windows-64.zip", []string{"xray.exe"}},
-	"sudoku":    {"SUDOKU-ASCII/sudoku", "sudoku-windows-amd64.zip", []string{"sudoku.exe"}},
+	"sudoku":    {"sanderstripa/connect", "Connect-Sudoku-", []string{"sudoku.exe"}},
 	// Upstream Mist binaries do not implement Connect's SOCKS adapter.
 	"mist": {"sanderstripa/connect", "Connect-Mist-windows-amd64.zip", []string{"mist-client.exe"}},
 	"geo":  {"Loyalsoldier/v2ray-rules-dat", "", []string{"geoip.dat", "geosite.dat"}},
+}
+
+// Compatible packages keep the upstream protocol version separate from the
+// Connect adapter build so adapter-only fixes remain selectable updates.
+func sudokuPackageVersion(name string) string {
+	const prefix, suffix = "Connect-Sudoku-", "-windows-amd64.zip"
+	if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+		return ""
+	}
+	v := strings.TrimSuffix(strings.TrimPrefix(name, prefix), suffix)
+	if !regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+(?:[-.][0-9A-Za-z.-]+)?$`).MatchString(v) {
+		return ""
+	}
+	return v
+}
+func wantedAsset(id, name string) bool {
+	if id == "sudoku" {
+		return sudokuPackageVersion(name) != ""
+	}
+	return name == sources[id].asset
+}
+func compatibleSudokuBuild(info *debug.BuildInfo) bool {
+	if info == nil {
+		return false
+	}
+	adapters, mitigation := false, false
+	for _, setting := range info.Settings {
+		if setting.Key == "-tags" {
+			for _, tag := range strings.Split(setting.Value, ",") {
+				adapters = adapters || tag == "sudoku_patch"
+			}
+		}
+		if setting.Key == "DefaultGODEBUG" {
+			for _, value := range strings.Split(setting.Value, ",") {
+				mitigation = mitigation || value == "multipathtcp=0"
+			}
+		}
+	}
+	return adapters && mitigation
+}
+func (m *Manager) compatibleSudoku(g *generation) bool {
+	if g == nil || g.Disabled {
+		return false
+	}
+	dir, err := m.slot("sudoku", g)
+	if err != nil {
+		return false
+	}
+	info, err := buildinfo.ReadFile(filepath.Join(dir, "sudoku.exe"))
+	return err == nil && compatibleSudokuBuild(info)
 }
 
 func requiredFiles(id string) []string {
@@ -172,11 +225,13 @@ func (m *Manager) catalog(ctx context.Context, id string, preview bool) ([]Relea
 		return nil, errors.New("invalid release catalog")
 	}
 	out := []Release{}
+	seen := map[string]bool{}
 	for _, r := range upstream {
 		if r.Draft || (!preview && r.Prerelease) {
 			continue
 		}
 		valid := true
+		version := r.Tag
 		required := []string{s.asset}
 		if id == "geo" {
 			required = s.files
@@ -184,7 +239,10 @@ func (m *Manager) catalog(ctx context.Context, id string, preview bool) ([]Relea
 		for _, name := range required {
 			found := false
 			for _, a := range r.Assets {
-				if a.Name == name && validDigest(a.Digest) {
+				if (a.Name == name || (id == "sudoku" && wantedAsset(id, a.Name))) && validDigest(a.Digest) {
+					if id == "sudoku" {
+						version = sudokuPackageVersion(a.Name) + "+connect." + strings.TrimPrefix(r.Tag, "v")
+					}
 					found = true
 				}
 			}
@@ -192,8 +250,9 @@ func (m *Manager) catalog(ctx context.Context, id string, preview bool) ([]Relea
 				valid = false
 			}
 		}
-		if valid {
-			out = append(out, Release{r.Tag, r.Prerelease, r.Published, r.Assets})
+		if valid && !seen[version] {
+			seen[version] = true
+			out = append(out, Release{version, r.Prerelease, r.Published, r.Assets})
 		}
 		if len(out) == 10 {
 			break
@@ -271,7 +330,7 @@ func (m *Manager) Resolve(id, name, fallback string) (string, error) {
 	if e = m.validate(id, s.Current); e != nil {
 		return "", e
 	}
-	if s.Current.Disabled {
+	if s.Current.Disabled || (id == "sudoku" && !m.compatibleSudoku(s.Current)) {
 		return fallback, nil
 	}
 	if _, ok := s.Current.Hashes[name]; !ok {
@@ -325,6 +384,15 @@ func (m *Manager) Status(id string, check, preview bool) Component {
 				c.Previous = ""
 			}
 		}
+	}
+	// A raw upstream update lacks desktop adapters. Keep its immutable slot
+	// intact, but report and run the bundled compatible baseline instead.
+	if id == "sudoku" && s.Current != nil && !m.compatibleSudoku(s.Current) && c.Error == "" {
+		c.Installed = m.Baselines[id].Version
+		c.Build = m.Baselines[id].Build
+	}
+	if id == "sudoku" && s.Previous != nil && !m.compatibleSudoku(s.Previous) {
+		c.Previous = ""
 	}
 	if check {
 		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
@@ -515,7 +583,7 @@ func (m *Manager) Install(id, version string) (Result, error) {
 	src := sources[id]
 	files := map[string][]byte{}
 	for _, a := range selected.Assets {
-		wanted := a.Name == src.asset
+		wanted := wantedAsset(id, a.Name)
 		if id == "geo" {
 			wanted = a.Name == "geoip.dat" || a.Name == "geosite.dat"
 		}
@@ -537,6 +605,12 @@ func (m *Manager) Install(id, version string) (Result, error) {
 			if e != nil {
 				return Result{}, e
 			}
+		}
+	}
+	if id == "sudoku" {
+		info, err := buildinfo.Read(bytes.NewReader(files["sudoku.exe"]))
+		if err != nil || !compatibleSudokuBuild(info) {
+			return Result{}, errors.New("Sudoku package lacks required desktop adapters or MPTCP mitigation")
 		}
 	}
 	g, e := m.store(id, version, files)

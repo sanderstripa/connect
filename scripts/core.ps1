@@ -94,48 +94,6 @@ function Patch-ReplaceFirstN([string]$Path, [string]$Needle, [string]$Replacemen
   Write-Text $Path $new
 }
 
-function Patch-GoDialTarget([string]$Path) {
-  $data = Read-Text $Path
-  $needle = "func dialTarget("
-  $start = $data.IndexOf($needle)
-  if ($start -lt 0) { throw "dialTarget not found in $Path (upstream changed?)" }
-  $braceStart = $data.IndexOf("{", $start)
-  if ($braceStart -lt 0) { throw "dialTarget brace not found in $Path" }
-  $level = 0
-  $end = -1
-  for ($i = $braceStart; $i -lt $data.Length; $i++) {
-    $ch = $data[$i]
-    if ($ch -eq "{") {
-      $level++
-    } elseif ($ch -eq "}") {
-      $level--
-      if ($level -eq 0) {
-        $end = $i + 1
-        break
-      }
-    }
-  }
-  if ($end -lt 0) { throw "dialTarget end not found in $Path" }
-  $funcText = $data.Substring($start, $end - $start)
-  if ($funcText.Contains("wrapConnForTrafficStats")) { return }
-  $patched = $funcText
-  $replacements = @(
-    @{ Needle = "return conn, decision, true"; Replacement = "return wrapConnForTrafficStats(conn, true), decision, true" },
-    @{ Needle = "return dConn, decision, true"; Replacement = "return wrapConnForTrafficStats(dConn, false), decision, true" },
-    @{ Needle = "return conn, true"; Replacement = "return wrapConnForTrafficStats(conn, true), true" },
-    @{ Needle = "return dConn, true"; Replacement = "return wrapConnForTrafficStats(dConn, false), true" }
-  )
-  foreach ($entry in $replacements) {
-    $next = Replace-First $patched $entry.Needle $entry.Replacement
-    if ($null -ne $next) {
-      $patched = $next
-    }
-  }
-  if ($patched -eq $funcText) { throw "patch failed: dialTarget return pattern not found in $Path" }
-  $out = $data.Substring(0, $start) + $patched + $data.Substring($end)
-  Write-Text $Path $out
-}
-
 function Invoke-Native([string]$FilePath, [string[]]$ArgumentList) {
   & $FilePath @ArgumentList
   if ($LASTEXITCODE -ne 0) {
@@ -207,7 +165,7 @@ if ($What -eq "all" -or $What -eq "sudoku") {
   $sudokuRepo = $env:SUDOKU_REPO
   if (-not $sudokuRepo) { $sudokuRepo = "https://github.com/SUDOKU-ASCII/sudoku.git" }
   $sudokuRef = $env:SUDOKU_REF
-  if (-not $sudokuRef) { $sudokuRef = "v0.5.1" }
+  if (-not $sudokuRef) { $sudokuRef = "v0.5.2-1" }
 
   $tmp = New-TempDir "sudoku-build-"
   $sudokuDir = Join-Path $tmp "sudoku"
@@ -257,38 +215,8 @@ if ($What -eq "all" -or $What -eq "sudoku") {
       Invoke-Native $tar.Source @("-xzf", $tgzPath, "-C", $sudokuDir, "--strip-components=1")
     }
 
-    # Relax upstream go.mod patch version (go 1.26.0 -> go 1.26) for toolchain compatibility.
-    $goMod = Join-Path $sudokuDir "go.mod"
-    if (Test-Path -LiteralPath $goMod) {
-      $data = Read-Text $goMod
-      $new = [Regex]::Replace($data, "(?m)^go\\s+(\\d+)\\.(\\d+)\\.\\d+\\s*$", { param($m) "go $($m.Groups[1].Value).$($m.Groups[2].Value)" })
-      if ($new -ne $data) {
-        Write-Text $goMod $new
-      }
-    }
-
-    # Overlay patch tree into upstream repo.
-    $patchDir = Join-Path $root "scripts/sudoku_patches"
-    if (Test-Path -LiteralPath $patchDir) {
-      Copy-Item -Recurse -Force -Path (Join-Path $patchDir "*") -Destination $sudokuDir
-    }
-
-    # Patch dialTarget() to wrap conns for traffic stats (direct/proxy).
-    Patch-GoDialTarget (Join-Path $sudokuDir "internal/app/client_target.go")
-
-    # Preserve domain exceptions for real IPs learned by DIRECT resolution.
-    $route = Join-Path $sudokuDir "internal/app/client_route.go"
-    Patch-ReplaceFirst $route 'if matched, match, directAddr := matchRuleManager(mgrs, routeActionDirect, destAddr, destIP); matched {' 'if matched, match := matchDirectAddress(mgrs, destAddr, destIP); matched {
-            return routeDecision{action: routeActionDirect, match: match, directAddr: destAddr}
-        }
-        if matched, match, directAddr := matchRuleManager(mgrs, routeActionDirect, destAddr, destIP); matched {'
-    # Patch SOCKS5 UDP associate DIRECT path to avoid TUN self-loop for outbound UDP.
-    $socks5 = Join-Path $sudokuDir "internal/app/client_socks5.go"
-    $socksData = Read-Text $socks5
-    if (-not $socksData.Contains("udpWriteTo(")) {
-      Patch-ReplaceFirst $socks5 "s.udpConn.WriteToUDP(payload, directAddr)" "udpWriteTo(s.udpConn, payload, directAddr, true)"
-      Patch-ReplaceFirstN $socks5 "s.udpConn.WriteToUDP(resp, clientAddr)" "udpWriteTo(s.udpConn, resp, clientAddr, false)" 2
-    }
+    # Keep upstream HTTP/UDP fixes and apply only the desktop adapters.
+    Invoke-Native "python" @((Join-Path $root "scripts/patch-sudoku.py"), $sudokuDir)
 
     $out = Join-Path $outDir ("sudoku" + $(if ($goos -eq "windows") { ".exe" } else { "" }))
     Push-Location $sudokuDir
@@ -297,7 +225,7 @@ if ($What -eq "all" -or $What -eq "sudoku") {
       $env:GOOS = $goos
       $env:GOARCH = $goarch
       if ($goos -eq (& go env GOHOSTOS)) {
-        Invoke-Native "go" @("test", "-mod=mod", "-tags", "sudoku_patch", "./internal/app", "-run", "TestHTTPProxyPreservesPrefetchedTunnelBytes|TestHandleMixedConn_HTTP|TestExplicitExceptionsKeepChatGPTInVPN|TestDirectAddress")
+        Invoke-Native "go" @("test", "-mod=mod", "-tags", "sudoku_patch", "./...")
       }
       Invoke-Native "go" @("build", "-mod=mod", "-tags", "sudoku_patch", "-trimpath", "-ldflags", "-s -w", "-o", $out, "./cmd/sudoku-tunnel")
     } finally {
