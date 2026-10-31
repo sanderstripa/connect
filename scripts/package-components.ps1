@@ -8,6 +8,9 @@ $connectManifest['xray.exe']=@{version=('v'+$Matches[1]);sha256=(Get-FileHash (J
 $connectSudoku=& go version -m (Join-Path $connectBin 'sudoku.exe')
 $connectSudokuVersion=($connectSudoku | Select-String '^\s+mod\s+github.com/SUDOKU-ASCII/sudoku\s+(\S+)' | Select-Object -First 1).Matches.Groups[1].Value
 if(-not $connectSudokuVersion){throw 'Cannot identify Sudoku version'}
+# Go records source adapters as +dirty; package names use the protocol release.
+$connectSudokuVersion=($connectSudokuVersion -split '\+')[0]
+if($connectSudokuVersion -ne 'v0.5.2-1'){throw 'Unexpected bundled Sudoku protocol version'}
 $connectAdapterVersion=(Get-Content (Join-Path $connectRoot 'frontend/package.json') -Raw | ConvertFrom-Json).version
 $connectManifest['sudoku.exe']=@{version=($connectSudokuVersion+'+connect.'+$connectAdapterVersion);sha256=(Get-FileHash (Join-Path $connectBin 'sudoku.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
 $connectMist=& (Join-Path $connectBin 'mist-client.exe') -version

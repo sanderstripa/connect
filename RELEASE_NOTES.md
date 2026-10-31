@@ -1,4 +1,4 @@
-Connect 0.3.2
+Connect 0.3.3
 
 - Update bundled Sudoku core and protocol parsing to upstream v0.5.2-1, including SOCKS5 UDP/IPv6 fixes and MPTCP mitigation.
 - Preserve traffic counters, DIRECT exceptions, TUN bypass and TCP half-close on the new client architecture.
