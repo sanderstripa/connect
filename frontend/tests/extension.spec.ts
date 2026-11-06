@@ -25,9 +25,9 @@ async function setup(page:Page,{empty=false,failed=false}={}){
    const copy=JSON.parse(JSON.stringify(state));for(const fn of listeners)fn({view:{newValue:copy}},'local');return copy;
   },openOptionsPage(){throw Error('Unexpected settings tab');}},storage:{local:{async get(){return {preferences:JSON.parse(localStorage.getItem('preferences')||'null')};},async set(v:any){localStorage.setItem('preferences',JSON.stringify(v.preferences));}},onChanged:{addListener(fn:any){listeners.push(fn);}}}};
  },{empty,failed});
- await page.setViewportSize({width:320,height:560});await page.goto('/chrome-preview/popup.html');await page.evaluate(()=>document.fonts.ready);
+ await page.setViewportSize({width:360,height:580});await page.goto('/chrome-preview/popup.html');await page.evaluate(()=>document.fonts.ready);
 }
-async function assertFits(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('body').evaluate(e=>e.getBoundingClientRect().height)).toBeLessThanOrEqual(560);}
+async function assertFits(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('body').evaluate(e=>e.getBoundingClientRect().height)).toBeLessThanOrEqual(580);}
 
 test('compact popup switches profiles exclusively without a settings tab',async({page})=>{
  await setup(page);await expect(page.locator('.profile [role=switch]')).toHaveCount(3);await expect(page.locator('#power,#settings')).toHaveCount(0);

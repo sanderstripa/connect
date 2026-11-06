@@ -1,12 +1,21 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect</title><link rel="stylesheet" href="style.css"></head>
-<body class="popup">
+<body class="popup settings">
 <header><span class="wordmark">CONNECT.</span><div class="tools"><button id="language" aria-label="Язык интерфейса">RU</button><button id="theme" class="toggle" role="switch" aria-checked="true" aria-label="Светлая тема"><span></span></button></div></header>
 <main>
 <section id="connections" aria-label="Соединения">
+<h1 id="settings-title">Настройки соединений</h1>
 <div id="profiles" class="profiles"></div>
 <p id="status" role="status" class="muted" hidden></p>
 <button id="add" class="add"><span aria-hidden="true">+</span> Добавить</button>
+<form id="routing-form" class="routing">
+<h1 id="routing-title">Маршрутизация</h1>
+<label id="routing-label" for="domains">Сайты мимо VPN · по одному домену в строке</label>
+<textarea id="domains" rows="6" spellcheck="false" placeholder="example.com" maxlength="65536"></textarea>
+<p id="routing-hint" class="muted">Поддомены тоже идут напрямую. Исключения действуют только в Chrome.</p>
+<button id="routing-save" class="primary" type="submit">Сохранить маршрутизацию</button>
+<p id="routing-result" role="status"></p>
+</form>
 </section>
 <section id="editor" hidden>
 <div class="editor-heading"><button id="back" aria-label="Назад" class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><h1 id="editor-title">Добавить соединение</h1></div>

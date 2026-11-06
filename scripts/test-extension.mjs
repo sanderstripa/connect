@@ -21,10 +21,10 @@ function harness({failedConnect=false,failedNode='',delay=0,cold=false,savedDesi
   }};listeners.port=p;return p;
  },onMessage:{addListener(fn){listeners.message=fn}},onInstalled:{addListener(){}},onStartup:{addListener(fn){listeners.startup=fn}}},
  storage:{session:{async get(k){return typeof k==='string'?{[k]:storage[k]}:storage},async set(v){Object.assign(storage,v)}},local:{async get(k){return typeof k==='string'?{[k]:local[k]}:local},async set(v){Object.assign(local,v);if(v.view)storage.view=v.view},async remove(keys){for(const k of keys)delete local[k]}}},
- action:{setBadgeText(){}},proxy:{settings:{async get(){return {levelOfControl:'controllable_by_this_extension'}},async set(v){changes.push(['proxy',v])},async clear(v){changes.push(['clear',v])}},onProxyError:{addListener(fn){listeners.proxyError=fn}}},
+ action:{setBadgeText(){},async setPopup(){},async openPopup(){},onClicked:{addListener(fn){listeners.click=fn}}},contextMenus:{onClicked:{addListener(fn){listeners.menu=fn}},removeAll(fn){fn()},create(){}},proxy:{settings:{async get(){return {levelOfControl:'controllable_by_this_extension'}},async set(v){changes.push(['proxy',v])},async clear(v){changes.push(['clear',v])}},onProxyError:{addListener(fn){listeners.proxyError=fn}}},
  privacy:{network:{webRTCIPHandlingPolicy:{async set(v){changes.push(['webrtc',v])},async clear(v){changes.push(['rtcClear',v])}}}},
  alarms:{onAlarm:{addListener(fn){listeners.alarm=fn}},create(){}}};
- vm.runInContext(fs.readFileSync(new URL('../extension/background.js',import.meta.url),'utf8'),vm.createContext({chrome,setTimeout,clearTimeout,console}));
+ vm.runInContext(fs.readFileSync(new URL('../extension/background.js',import.meta.url),'utf8'),vm.createContext({chrome,setTimeout,clearTimeout,console,URL}));
  return {storage,local,windows,changes,commands,listeners,send:m=>new Promise(resolve=>listeners.message(typeof m==='string'?{action:m}:m,{id:chrome.runtime.id},resolve))};
 }
 
@@ -85,3 +85,14 @@ test('closing during an in-flight activation cannot restore proxy or desired con
  const h=harness({delay:30});const result=h.send('connect');await new Promise(r=>setTimeout(r,40));h.windows.length=0;await h.listeners.removed();await result;await settle();
  assert.equal(h.storage.desired,false);assert.equal(h.storage.view.connected,false);assert.equal(h.changes.at(-2)[0],'clear');assert.equal(h.changes.at(-1)[0],'rtcClear');assert.equal(h.listeners.port.closed,true);
 });
+
+test('toolbar toggles default profile on then off',async()=>{
+ const h=harness();await h.send({action:'default',nodeId:'two'});let r=await h.send('toggle');assert.equal(r.connected,true);assert.equal(r.activeNodeId,'two');r=await h.send('toggle');assert.equal(r.desired,false);assert.equal(r.connected,false);
+});
+test('routing persists domains and applies exact and subdomain bypass while connected',async()=>{
+ const h=harness();await h.send('connect');let r=await h.send({action:'routing',domains:'example.com\n*.example.org\nexample.com'});assert.equal(r.ok,true);
+ const rules=h.changes.filter(c=>c[0]==='proxy').at(-1)[1].value.rules;assert.ok(rules.bypassList.includes('example.com'));assert.ok(rules.bypassList.includes('*.example.org'));assert.equal(h.local.bypassDomains.length,2);
+ r=await h.send({action:'routing',domains:'example.com/path'});assert.equal(r.ok,false);assert.equal(h.local.bypassDomains.length,2);
+ await h.send({action:'routing',domains:''});assert.equal(h.changes.filter(c=>c[0]==='proxy').at(-1)[1].value.rules.bypassList.length,3);
+});
+test('deleting default removes stale preference',async()=>{const h=harness();await h.send({action:'default',nodeId:'two'});await h.send({action:'delete',nodeId:'two'});assert.equal(h.local.defaultNodeId,undefined);});
