@@ -4,7 +4,7 @@ let closing=false,lifecycleEpoch=0;
 const snapshot={connected:false,nodes:[],activeNodeId:'',busy:false,operation:''};
 async function publish(error=''){const saved=await chrome.storage.session.get(['desired','desiredNodeId']);await chrome.storage.local.set({view:{...snapshot,desired:!!saved.desired,desiredNodeId:saved.desiredNodeId||snapshot.activeNodeId,error}});chrome.action.setBadgeText({text:snapshot.connected?'ON':''});}
 function request(action,data={}){if(closing)return Promise.reject(new Error('Browser session ended'));if(!port){port=chrome.runtime.connectNative(HOST);const current=port;port.onMessage.addListener(m=>{if(port!==current||closing)return;Object.assign(snapshot,m);if(m.event==='stopped'){snapshot.connected=false;if(snapshot.busy)return;chrome.storage.session.get('desired').then(({desired})=>publish(desired?'Соединение прервано. Трафик заблокирован до переподключения.':''));return;}const p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.ok?p.resolve(m):p.reject(new Error(m.error||'Не удалось выполнить действие'));}});port.onDisconnect.addListener(()=>{if(port!==current)return;const detail=chrome.runtime.lastError?.message;if(port===current)port=null;for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error(detail||'Помощник недоступен. Установите Connect с компонентом Chrome.'));}pending.clear();snapshot.connected=false;chrome.storage.session.get('desired').then(({desired})=>publish(desired?'Связь с помощником потеряна.':''));});}return new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Сервер не ответил. Проверьте настройки.'));},45000);pending.set(id,{resolve,reject,timer});port.postMessage({id,action,...data});});}
-async function setProxy(){const settings=await chrome.proxy.settings.get({incognito:false});if(!['controllable_by_this_extension','controlled_by_this_extension'].includes(settings.levelOfControl))throw new Error('Настройки прокси заняты другим расширением или политикой Chrome.');await chrome.proxy.settings.set({scope:'regular',value:{mode:'fixed_servers',rules:{singleProxy:{scheme:'socks5',host:'127.0.0.1',port:17991},bypassList:['localhost','127.0.0.1','[::1]']}}});await chrome.privacy.network.webRTCIPHandlingPolicy.set({scope:'regular',value:'disable_non_proxied_udp'});}
+async function setProxy(){const settings=await chrome.proxy.settings.get({incognito:false});if(!['controllable_by_this_extension','controlled_by_this_extension'].includes(settings.levelOfControl))throw new Error('Настройки прокси заняты другим расширением или политикой Chrome.');const {bypassDomains=[]}=await chrome.storage.local.get('bypassDomains');await chrome.proxy.settings.set({scope:'regular',value:{mode:'fixed_servers',rules:{singleProxy:{scheme:'socks5',host:'127.0.0.1',port:17991},bypassList:['localhost','127.0.0.1','[::1]',...bypassDomains.flatMap(d=>[d,'*.'+d])]}}});await chrome.privacy.network.webRTCIPHandlingPolicy.set({scope:'regular',value:'disable_non_proxied_udp'});}
 async function disconnect(){await chrome.storage.session.set({desired:false,desiredNodeId:''});await chrome.proxy.settings.clear({scope:'regular'});await chrome.privacy.network.webRTCIPHandlingPolicy.clear({scope:'regular'});await request('disconnect');snapshot.connected=false;}
 async function dispatch(m){
  await initialized;const epoch=lifecycleEpoch;
@@ -12,7 +12,29 @@ async function dispatch(m){
  snapshot.busy=true;snapshot.operation=m.action;await publish();
  let error='';
  try{
-  if(m.action==='activate'){
+  if(m.action==='toggle'){
+   const {desired}=await chrome.storage.session.get('desired');
+   if(desired)await disconnect();
+   else{
+    await request('status');
+    const {defaultNodeId}=await chrome.storage.local.get('defaultNodeId');
+    const nodeId=snapshot.nodes.some(n=>n.id===defaultNodeId)?defaultNodeId:snapshot.activeNodeId||snapshot.nodes[0]?.id;
+    if(!nodeId)throw new Error('Добавьте соединение.');
+    await setProxy();await chrome.storage.session.set({desired:true,desiredNodeId:nodeId});
+    if(snapshot.activeNodeId!==nodeId)await request('select',{nodeId});
+    await request('connect');
+   }
+  }else if(m.action==='default'){
+   await request('status');
+   if(!snapshot.nodes.some(n=>n.id===m.nodeId))throw new Error('Соединение не найдено.');
+   await chrome.storage.local.set({defaultNodeId:m.nodeId});
+  }else if(m.action==='routing'){
+   const bypassDomains=normalizeDomains(m.domains);
+   const previous=await chrome.storage.local.get('bypassDomains');
+   await chrome.storage.local.set({bypassDomains});
+   const {desired}=await chrome.storage.session.get('desired');
+   if(desired){try{await setProxy()}catch(e){await chrome.storage.local.set({bypassDomains:previous.bypassDomains||[]});throw e;}}
+  }else if(m.action==='activate'){
    await request('status');
    if(!snapshot.nodes.some(n=>n.id===m.nodeId))throw new Error('Соединение не найдено.');
    if(!(snapshot.connected&&snapshot.activeNodeId===m.nodeId)){
@@ -35,6 +57,7 @@ async function dispatch(m){
    const saved=await chrome.storage.session.get('desiredNodeId');
    if(snapshot.activeNodeId===m.nodeId||saved.desiredNodeId===m.nodeId)await disconnect();
    await request('delete',{nodeId:m.nodeId});
+   const {defaultNodeId}=await chrome.storage.local.get('defaultNodeId');if(defaultNodeId===m.nodeId)await chrome.storage.local.remove(['defaultNodeId']);
   }else if(m.action==='status'){
    await request('status');const saved=await chrome.storage.session.get(['desired','desiredNodeId']);
    if(saved.desired&&!snapshot.connected){
@@ -61,6 +84,7 @@ const initialized=(async()=>{
  const {initialized}=await chrome.storage.session.get('initialized');
  if(!initialized){await chrome.storage.session.set({initialized:true,desired:false,desiredNodeId:''});await clearProxy();snapshot.connected=false;await publish();}
  await chrome.storage.local.remove(['desired','desiredNodeId']);
+ await chrome.action.setPopup({popup:''});
 })();
 async function endBrowserSession(){
  const windows=await chrome.windows.getAll({windowTypes:['normal','popup']});
@@ -74,3 +98,27 @@ chrome.alarms.onAlarm.addListener(()=>{queue=queue.catch(()=>{}).then(async()=>{
 chrome.runtime.onInstalled.addListener(()=>chrome.alarms.create('connect-health',{periodInMinutes:0.5}));
 chrome.runtime.onStartup.addListener(()=>{queue=queue.catch(()=>{}).then(async()=>{await initialized;await publish();});});
 chrome.proxy.onProxyError.addListener(()=>{chrome.storage.session.get('desired').then(({desired})=>{if(desired&&!closing){snapshot.connected=false;publish('Прокси недоступен. Трафик остаётся заблокированным.');}});});
+
+// Only domain names are accepted: no proxy bypass syntax, ports or path rules.
+function normalizeDomains(input){
+ if(typeof input!=='string'||input.length>65536)throw new Error('Введите список доменов (до 64 КБ).');
+ const result=[];
+ for(let entry of input.split(/[\n,;]+/).map(s=>s.trim()).filter(Boolean)){
+  entry=entry.replace(/^\*\./,'');
+  let url;try{url=new URL(entry.includes('://')?entry:'https://'+entry)}catch{throw new Error('Некорректный домен: '+entry)}
+  const domain=url.hostname.toLowerCase().replace(/\.$/,'');
+  if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.port||url.search||url.hash||url.pathname!=='/'||domain.length>253||!domain.split('.').every(part=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(part)))throw new Error('Некорректный домен: '+entry);
+  if(!result.includes(domain))result.push(domain);
+ }
+ return result;
+}
+function enqueue(message){queue=queue.catch(()=>{}).then(()=>dispatch(message));return queue;}
+chrome.action.onClicked.addListener(()=>enqueue({action:'toggle'}).catch(console.error));
+chrome.contextMenus.onClicked.addListener(info=>{
+ if(info.menuItemId!=='connect-settings')return;
+ // Set a popup only while opening settings, so ordinary left clicks keep toggling.
+ (async()=>{try{await chrome.action.setPopup({popup:'popup.html'});await chrome.action.openPopup();}catch(e){console.error(e);await publish('Не удалось открыть настройки. Повторите правый клик.');}finally{await chrome.action.setPopup({popup:''});}})();
+});
+chrome.runtime.onInstalled.addListener(()=>{
+ chrome.contextMenus.removeAll(()=>chrome.contextMenus.create({id:'connect-settings',title:'Настройки / Settings',contexts:['action']}));
+});
