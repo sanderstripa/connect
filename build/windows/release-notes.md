@@ -1,7 +1,7 @@
-Connect 0.3.3
+Connect 0.4.0
 
-- Update bundled Sudoku core and protocol parsing to upstream v0.5.2-1, including SOCKS5 UDP/IPv6 fixes and MPTCP mitigation.
-- Preserve traffic counters, DIRECT exceptions, TUN bypass and TCP half-close on the new client architecture.
-- Publish a separately verified compatible Sudoku component for in-app updates, using the protocol version in its package name.
-- Prefer the bundled compatible core when a previous raw upstream update lacks desktop adapters; retain its files and saved credentials.
-- Keep other protocols, profiles, subscription imports, extension integration and branding unchanged.
+- Chrome: left-click the toolbar icon to connect or disconnect.
+- Chrome: right-click → Settings opens a compact extension popup.
+- Add/remove connections and choose the default connection.
+- Configure domains and subdomains that bypass VPN in Chrome.
+- Windows application behavior is unchanged; only release version metadata is updated.
