@@ -76,7 +76,6 @@ jobs:
             build/bin/Connect.exe
             build/bin/Connect-Setup.exe
             build/bin/Connect-Chrome.zip
-            build/bin/Connect-Mist-windows-amd64.zip
             build/bin/Connect-AmneziaWG-windows-amd64.zip
             build/bin/Connect-Sudoku-*-windows-amd64.zip
             build/bin/Connect-Setup.exe.build.json
@@ -95,9 +94,9 @@ jobs:
           if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid release tag' }
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) { Write-Host "Release $tag already exists; preserving published binaries."; exit 0 }
-          $files=@('build/bin/Connect.exe','build/bin/Connect-Setup.exe','build/bin/Connect-Chrome.zip','build/bin/Connect-Mist-windows-amd64.zip','build/bin/Connect-AmneziaWG-windows-amd64.zip')
+          $files=@('build/bin/Connect.exe','build/bin/Connect-Setup.exe','build/bin/Connect-Chrome.zip','build/bin/Connect-AmneziaWG-windows-amd64.zip')
           $files += @(Get-ChildItem build/bin/Connect-Sudoku-*-windows-amd64.zip | ForEach-Object { $_.FullName })
-          if ($files.Count -ne 6) { throw 'Expected exactly one compatible Sudoku component' }
+          if ($files.Count -ne 5) { throw 'Expected exactly one compatible Sudoku component' }
           $sums=foreach($file in $files){ "$((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
           $sums | Set-Content SHA256SUMS.txt -Encoding ascii
           gh release create $tag @files SHA256SUMS.txt --target $env:GITHUB_SHA --latest --title "Connect $tag" --notes-file RELEASE_NOTES.md

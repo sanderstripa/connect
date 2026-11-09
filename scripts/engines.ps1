@@ -11,15 +11,6 @@ if((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected){th
 Expand-Archive -LiteralPath $archive -DestinationPath $scratch -Force
 Copy-Item -LiteralPath (Join-Path $scratch 'xray.exe') -Destination $out
 Copy-Item -LiteralPath (Join-Path $scratch 'LICENSE') -Destination (Join-Path $out 'Xray-LICENSE.txt')
-Push-Location (Join-Path $root 'engines/mist')
-try {
- & go test ./cmd/mist-client ./internal/config
- if($LASTEXITCODE -ne 0){throw 'Mist tests failed'}
- $env:CGO_ENABLED='0'
- & go build -trimpath '-ldflags=-w -s -X main.buildVersion=connect-0.1.8+mist-d4e7dac-socks' -o (Join-Path $out 'mist-client.exe') ./cmd/mist-client
- if($LASTEXITCODE -ne 0){throw 'Mist build failed'}
-}finally{Pop-Location}
-
 Push-Location $root
 try {
  & go test ./internal/awgconfig ./cmd/awg-client

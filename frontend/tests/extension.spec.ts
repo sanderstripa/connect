@@ -9,7 +9,7 @@ async function setup(page:Page,{empty=false,failed=false}={}){
   const type=name.endsWith('.css')?'text/css':name.endsWith('.js')?'text/javascript':name.endsWith('.ttf')?'font/ttf':name.endsWith('.png')?'image/png':'text/html';await route.fulfill({contentType:type,body:await fs.readFile(file)});
  });
  await page.addInitScript(({empty,failed})=>{
-  const state:any={ok:true,connected:false,desired:false,busy:false,activeNodeId:'s',nodes:empty?[]:[{id:'x',name:'Amsterdam-Chrome',protocol:'xray'},{id:'s',name:'203.0.113.20',protocol:'sudoku'},{id:'m',name:'Мой Mist',protocol:'mist'}]};
+  const state:any={ok:true,connected:false,desired:false,busy:false,activeNodeId:'s',nodes:empty?[]:[{id:'x',name:'Amsterdam-Chrome',protocol:'xray'},{id:'s',name:'203.0.113.20',protocol:'sudoku'},{id:'m',name:'Мой AmneziaWG',protocol:'amneziawg'}]};
   const listeners:any[]=[];(window as any).calls=[];
   (window as any).chrome={runtime:{async sendMessage(m:any){
    (window as any).calls.push(m);
@@ -19,7 +19,7 @@ async function setup(page:Page,{empty=false,failed=false}={}){
    if(m.action==='disconnect'){state.connected=false;state.desired=false;}
    if(m.action==='delete'){state.nodes=state.nodes.filter((n:any)=>n.id!==m.nodeId);if(state.activeNodeId===m.nodeId){state.connected=false;state.desired=false;}}
    if(m.action==='import'){
-    const p=m.link.startsWith('[Interface]')?'amneziawg':m.link.startsWith('sudoku://')?'sudoku':m.link.startsWith('vless://')?'xray':m.link.startsWith('{')?'mist':'';
+    const p=m.link.startsWith('[Interface]')?'amneziawg':m.link.startsWith('sudoku://')?'sudoku':m.link.startsWith('vless://')?'xray':'';
     if(!p){state.ok=false;state.error='Некорректная ссылка';}else state.nodes.push({id:'new-'+state.nodes.length,name:m.name||(p==='sudoku'?'203.0.113.20':'Мой '+p),protocol:p});
    }
    const copy=JSON.parse(JSON.stringify(state));for(const fn of listeners)fn({view:{newValue:copy}},'local');return copy;
@@ -37,14 +37,14 @@ test('compact popup switches profiles exclusively without a settings tab',async(
  expect(await page.evaluate(()=>(window as any).calls.filter((m:any)=>m.action==='activate').map((m:any)=>m.nodeId))).toEqual(['x','s']);
  for(const theme of ['light','dark'] as const){await page.emulateMedia({colorScheme:theme});await assertFits(page);if(process.env.SUDOKU_PREVIEW_DIR)await page.locator('body').screenshot({path:path.join(process.env.SUDOKU_PREVIEW_DIR,`chrome-list-${theme}.png`)});}
  await s.click();await expect(page.locator('.profile [role=switch][aria-checked=true]')).toHaveCount(0);await expect(page.getByText('Вы отключены')).toBeVisible();
- page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Удалить Мой Mist'}).click();await expect(page.locator('.profile [role=switch]')).toHaveCount(2);
+ page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Удалить Мой AmneziaWG'}).click();await expect(page.locator('.profile [role=switch]')).toHaveCount(2);
 });
 
 test('empty popup imports links in place with automatic protocol detection',async({page})=>{
  await setup(page,{empty:true});await expect(page.locator('.profile [role=switch]')).toHaveCount(0);await expect(page.getByRole('button',{name:'Добавить',exact:true})).toBeVisible();
  const url=page.url();await page.getByRole('button',{name:'Добавить',exact:true}).click();await expect(page.getByRole('heading',{name:'Добавить соединение'})).toBeVisible();
  await page.getByLabel('Ссылка или конфигурация').fill('invalid');await page.getByRole('button',{name:'Добавить',exact:true}).click();await expect(page.getByRole('alert')).toHaveText('Некорректная ссылка');await expect(page.locator('#link')).toHaveValue('invalid');
- for(const [link,protocol,name]of [['sudoku://example','Sudoku','203.0.113.20'],['vless://example','Xray','Amsterdam-Chrome'],['{"token":"example"}','Mist','Мой Mist']]){
+ for(const [link,protocol,name]of [['sudoku://example','Sudoku','203.0.113.20'],['vless://example','Xray','Amsterdam-Chrome'],['[Interface]\nPrivateKey=test','AmneziaWG','Мой AmneziaWG']]){
   if(await page.locator('#editor').isHidden())await page.getByRole('button',{name:'Добавить',exact:true}).click();
   await page.getByLabel('Ссылка или конфигурация').fill(link);await expect(page.locator('#detected')).toHaveText('Протокол · '+protocol);
   await page.locator('#name').fill(name);await assertFits(page);

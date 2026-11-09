@@ -5,7 +5,7 @@
 <p align="center">A minimal VPN for Windows, with an independent Chrome extension.</p>
 <p align="center"><a href="https://github.com/sanderstripa/connect/releases">Download for Windows</a></p>
 
-Connect brings **Sudoku, Xray, AmneziaWG and experimental Mist** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
+Connect brings **Sudoku, Xray and AmneziaWG** into a clean interface inspired by [sudoku-app](https://github.com/sanderstripa/sudoku-app). Montserrat typography, a quiet monochrome palette and light, dark or system themes keep the focus on your connection.
 
 ## Interface
 
@@ -15,14 +15,14 @@ The desktop controls follow [CONNECT UI System v1.0](docs/UI-SYSTEM-v1-IMPLEMENT
 
 - Connect with one button and switch between saved protocol profiles.
 - Route device traffic through TUN; the tray shows the transparent folded-diamond mark in graphite/grey when disconnected and graphite/olive when the core and tunnel are active. The desktop and installer use the circular olive/graphite app icon.
-- Import Sudoku links/subscriptions, VLESS, VMess, Trojan, a Mist client configuration or an AmneziaWG `.conf` profile.
+- Import Sudoku links/subscriptions, VLESS, VMess, Trojan or an AmneziaWG `.conf` profile.
 - Preserve Xray xhttp parameters, including host, path, mode and extra, plus TLS/Reality settings. TCP, WebSocket and gRPC are also supported.
 - Switch between Russian and English inside Settings → Appearance; your language is saved immediately.
 - Keep profiles across updates and uninstallations. No server credentials are bundled.
 
 Install **Connect-Setup.exe**, add your own connection, then select a saved profile through the connection card and connect. Closing the window keeps Connect in the tray; choosing Exit disconnects it. The interface runs normally, while its network helper requests Windows elevation when needed.
 
-Sudoku ↔ Xray switching retains TUN, DNS and routes when server addresses are IPv4 and the local port is shared. The new core is checked with real HTTP traffic; failure restores the previous profile. Domain names, IPv6, different ports and Mist use a full restart.
+Sudoku ↔ Xray switching retains TUN, DNS and routes when server addresses are IPv4 and the local port is shared. The new core is checked with real HTTP traffic; failure restores the previous profile. Domain names, IPv6, different ports and AmneziaWG use a full restart.
 
 Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. Desktop profiles are stored in `%APPDATA%\connect-app`.
 
@@ -30,13 +30,14 @@ Before applying desktop TUN routes, Connect 0.2.8 checks real HTTPS traffic thro
 
 ## Updates and rollback
 
-Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku, Mist and AmneziaWG have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
+Open **Settings → Updates** to inspect installed versions, check each component or check everything at once. Connect, Xray, GeoIP/GeoSite, Sudoku and AmneziaWG have separate controls. Pre-release checking is enabled by default, including Xray pre-releases; the switch also lets you filter to stable releases.
 
 Downloads require GitHub-published SHA-256 digests. Components are installed into immutable per-user slots in `%APPDATA%\connect-components`, shared by the desktop app and Chrome helper. The selected version takes effect on the next connection. Local rollback restores the previous files without downloading them again, including after restarting Connect. Component selections survive application updates.
 
 Application updates launch the normal Windows installer after Connect closes. Installed copies cache their current installer for offline rollback. Older published versions can also be selected after a release check when no local backup exists. Disable the Connect extension on `chrome://extensions` while replacing the application, then reload and re-enable it after installation.
 
-Xray and Sudoku are checked against their upstream releases. Geo includes both [GeoIP and GeoSite databases](https://github.com/Loyalsoldier/v2ray-rules-dat). Mist uses Connect release packages containing its compatible SOCKS adapter; ordinary upstream Mist executables are not interchangeable. Missing or unverifiable version information is shown as a file hash rather than a guessed release number.
+
+Xray and Sudoku are checked against their upstream releases. Geo includes both [GeoIP and GeoSite databases](https://github.com/Loyalsoldier/v2ray-rules-dat). Missing or unverifiable version information is shown as a file hash.
 
 ## AmneziaWG
 
@@ -64,10 +65,10 @@ The extension handles proxy-compatible Chrome traffic, rather than whole-device 
 
 ## Validation and current limits
 
-Automated checks cover Windows core and installer tests, link import, browser isolation, extension lifecycle and UI behavior. Local integration tests pass real HTTP through Xray/xhttp and Sudoku, exercise switching and rollback, and verify that Windows proxy settings remain unchanged. The Mist SOCKS adapter has TCP/UDP tests; an external Mist Edge connection and TUN operation in the user's network still need separate validation.
+Automated checks cover core and installer tests, link import, browser isolation, extension lifecycle and UI behavior. Integration tests exercise Xray/xhttp and Sudoku switching and rollback.
 
-- Mist is experimental. Its sources are pinned to revision `d4e7dacf22f9c3f4c5d762883544c102da0c6b49` of `mist-hardening-32`.
-- Windows split tunneling is available for Sudoku and Xray. Mist and AmneziaWG use all-traffic mode; Chrome currently has no configurable exclusions.
+
+- Windows split tunneling is available for Sudoku and Xray. AmneziaWG uses all-traffic mode; Chrome currently has no configurable exclusions.
 - One Chrome profile can be active per Windows user. Protocol cores update with the application.
 - Executables are unsigned. Local test timings do not guarantee remote connection speed.
 
@@ -86,8 +87,8 @@ cd ..
 ./scripts/build-installer.ps1 -SkipApp
 ```
 
-Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` `Connect-Chrome.zip` and the updater asset `Connect-Mist-windows-amd64.zip`.
+Outputs: `build/bin/Connect.exe`, `Connect-Setup.exe` `Connect-Chrome.zip` and the updater asset `Connect-AmneziaWG-windows-amd64.zip`.
 
-Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Mist builds from included sources; Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
+Xray 26.3.27 is downloaded from its official release with archive SHA-256 verification. Sudoku 0.5.1 and HEV 2.17.1 are packaged by the build scripts. See [BUILD-PROVENANCE.md](BUILD-PROVENANCE.md), [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE) for provenance and licensing. The original project's GPL-3.0-or-later terms and notices are retained.
 
 The approved olive/graphite variant A is maintained in [build/branding/source](build/branding/source). Windows application, installer and extension icons use the circular master; the tray uses separate transparent OFF/ON masters. See [ICON-BRANDING.md](docs/ICON-BRANDING.md) for regeneration and verification. The legacy SVG is used only by the macOS template tray.

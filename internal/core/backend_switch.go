@@ -22,7 +22,7 @@ func (b *Backend) switchCoreKeepingTun(previous NodeConfig) (bool, error) {
 	route := b.routeState
 	next := b.findNode(b.cfg.ActiveNodeID)
 	if route == nil || next == nil || !b.tunRunningLocked() || b.dnsProxy != nil ||
-		protocolOf(previous) == "mist" || protocolOf(*next) == "mist" {
+		!((protocolOf(previous) == "sudoku" || protocolOf(previous) == "xray") && (protocolOf(*next) == "sudoku" || protocolOf(*next) == "xray")) {
 		b.mu.Unlock()
 		return false, nil
 	}

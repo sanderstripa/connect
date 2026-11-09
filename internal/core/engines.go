@@ -24,16 +24,13 @@ func engineName(n NodeConfig) string {
 	if protocolOf(n) == "amneziawg" {
 		return "awg-client"
 	}
-	if protocolOf(n) == "mist" {
-		return "mist-client"
-	}
 	return "xray"
 }
 func engineArgs(n NodeConfig, config string, port int) []string {
 	switch protocolOf(n) {
 	case "xray":
 		return []string{"run", "-config", config}
-	case "mist", "amneziawg":
+	case "amneziawg":
 		return []string{"-config", config, "-socks", fmt.Sprintf("127.0.0.1:%d", port)}
 	}
 	return []string{"-c", config}
@@ -60,39 +57,6 @@ func ParseEngineLink(link string) (*NodeConfig, error) {
 		raw, _ := json.Marshal(cfg)
 		host, _, _ := net.SplitHostPort(cfg.Peer["Endpoint"])
 		return &NodeConfig{Protocol: "amneziawg", Name: "AmneziaWG · " + host, ServerAddress: cfg.Peer["Endpoint"], EngineConfig: string(raw), Enabled: true}, nil
-	}
-	if strings.HasPrefix(link, "mist://") {
-		b, e := decodeBase64(strings.TrimPrefix(link, "mist://"))
-		if e != nil {
-			return nil, e
-		}
-		link = string(b)
-	}
-	if strings.HasPrefix(link, "{") {
-		var cfg map[string]any
-		if e := json.Unmarshal([]byte(link), &cfg); e != nil {
-			return nil, fmt.Errorf("некорректный JSON Mist")
-		}
-		token, _ := cfg["token"].(string)
-		if token == "" {
-			return nil, fmt.Errorf("Mist: нужен token")
-		}
-		var endpoint map[string]any
-		if eps, ok := cfg["endpoints"].([]any); ok && len(eps) > 0 {
-			endpoint, _ = eps[0].(map[string]any)
-		} else {
-			endpoint, _ = cfg["endpoint"].(map[string]any)
-		}
-		address, _ := endpoint["dial_address"].(string)
-		if address == "" {
-			if addresses, ok := endpoint["dial_addresses"].([]any); ok && len(addresses) > 0 {
-				address, _ = addresses[0].(string)
-			}
-		}
-		if _, _, e := net.SplitHostPort(address); e != nil {
-			return nil, fmt.Errorf("Mist: нужен dial_address с портом")
-		}
-		return &NodeConfig{Protocol: "mist", Name: "Mist", ServerAddress: address, Key: token, EngineConfig: link, Enabled: true}, nil
 	}
 	if strings.HasPrefix(link, "vmess://") {
 		b, e := decodeBase64(strings.TrimPrefix(link, "vmess://"))

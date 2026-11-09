@@ -314,6 +314,16 @@ func normalizeConfigForOS(cfg *AppConfig, runtimeDir string, goos string) {
 			cfg.PortForwards[i].Name = fmt.Sprintf("Forward %d", i+1)
 		}
 	}
+	// Retain only supported profiles when loading older configurations.
+	nodes := cfg.Nodes[:0]
+	for _, node := range cfg.Nodes {
+		if p := protocolOf(node); p == "sudoku" || p == "xray" || p == "amneziawg" {
+			nodes = append(nodes, node)
+		} else if node.ID == cfg.ActiveNodeID {
+			cfg.ActiveNodeID = ""
+		}
+	}
+	cfg.Nodes = nodes
 	for i := range cfg.Nodes {
 		normalizeNode(&cfg.Nodes[i], cfg.Core.LocalPort)
 	}
