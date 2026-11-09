@@ -36,6 +36,12 @@ import ModeSelect from "./ModeSelect.vue";
 import UpdatesPanel from "./UpdatesPanel.vue";
 import settingsIcon from "../../docs/assets/CONNECT-settings-08.svg?raw";
 const appVersion = ref("…");
+const hoveredWindowControl = ref("");
+function resetWindowControls() { hoveredWindowControl.value = ""; }
+function hideToTray() {
+  resetWindowControls();
+  void Window.Hide();
+}
 const openConnect = () => Browser.OpenURL("https://connect.sanderstripa.com/");
 const draft = ref<AppConfig>();
 const config = ref<AppConfig>(),
@@ -343,19 +349,25 @@ async function copyLogs() {
 }
 onMounted(async () => {
   media.addEventListener("change", applyTheme);
+  window.addEventListener("blur", resetWindowControls);
+  window.addEventListener("focus", resetWindowControls);
   try {
     await reload();
-    try {
-      const info = await Call.ByName("main.App.GetUpdateStatus", "app", false, false) as {installed:string};
-      appVersion.value = info.installed;
-    } catch { appVersion.value = "—"; }
     theme.value = config.value?.ui.theme || "auto";
     applyTheme();
   } catch (e) {
     error.value = tr("Не удалось загрузить приложение: ") + String(e);
   } finally {
     loading.value = false;
+    await nextTick();
+    // Hidden WebViews may suspend animation frames: DOM/theme readiness must
+    // not depend on requestAnimationFrame or the window could stay hidden.
+    await document.fonts.ready;
+    await Events.Emit("main:ready", { dark: document.documentElement.dataset.theme === "dark" });
   }
+  void Call.ByName("main.App.GetUpdateStatus", "app", false, false)
+    .then((info) => { appVersion.value = (info as {installed:string}).installed; })
+    .catch(() => { appVersion.value = "—"; });
   timer = setInterval(async () => {
     if (polling) return;
     polling = true;
@@ -370,6 +382,8 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   removeNavigation();
+  window.removeEventListener("blur", resetWindowControls);
+  window.removeEventListener("focus", resetWindowControls);
   clearInterval(timer);
   media.removeEventListener("change", applyTheme);
 });
@@ -379,9 +393,9 @@ onBeforeUnmount(() => {
     <header class="titlebar">
       <span class="wordmark">CONNECT<span class="wordmark-dot">.</span></span>
       <div class="window-actions">
-        <button class="window-minimize" :aria-label="tr('Свернуть')" @click="Window.Minimise()">
+        <button class="window-minimize" :class="{ 'pointer-hover': hoveredWindowControl === 'minimize' }" @pointermove="hoveredWindowControl = 'minimize'" @pointerleave="resetWindowControls" :aria-label="tr('Свернуть')" @click="Window.Minimise()">
           <Minus :size="16" :stroke-width="1.25" /></button
-        ><button class="window-close" :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
+        ><button class="window-close" :class="{ 'pointer-hover': hoveredWindowControl === 'close' }" @pointermove="hoveredWindowControl = 'close'" @pointerleave="resetWindowControls" :aria-label="tr('Скрыть в трей')" @click="hideToTray">
           <X :size="14" :stroke-width="1.25" />
         </button>
       </div>

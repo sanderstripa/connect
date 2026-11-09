@@ -176,6 +176,27 @@ func main() {
 
 	configureWindowIcon(mainWindow)
 	persistMainPosition = bindWindowPosition(app, mainWindow, startHidden)
+	// Runtime-ready precedes Vue hydration and configuration loading. Reveal only
+	// after the frontend has rendered its configured theme and initial content.
+	var interfaceReady atomic.Bool
+	app.Event.On("main:ready", func(event *application.CustomEvent) {
+		if event.Sender != "main" || !interfaceReady.CompareAndSwap(false, true) {
+			return
+		}
+		application.InvokeAsync(func() {
+			// Match the native surface before showing it, including dark startup.
+			if runtime.GOOS == "windows" {
+				colour := application.NewRGB(255, 255, 255)
+				if data, ok := event.Data.(map[string]interface{}); ok && data["dark"] == true {
+					colour = application.NewRGB(8, 9, 11)
+				}
+				mainWindow.SetBackgroundColour(colour)
+			}
+			if !startHidden {
+				mainWindow.Show()
+			}
+		})
+	})
 	mainWindow.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		persistMainPosition()
 		if quitting.Load() {

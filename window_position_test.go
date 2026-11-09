@@ -39,8 +39,8 @@ func TestWindowPositionEvents(t *testing.T) {
 				t.Fatal("saved before runtime ready")
 			}
 			w.callbacks[events.Common.WindowRuntimeReady](nil)
-			if w.visible == hidden {
-				t.Fatal("autostart visibility changed")
+			if w.visible {
+				t.Fatal("runtime ready revealed window before frontend readiness")
 			}
 			w.visible = true
 			w.callbacks[events.Common.WindowDidMove](nil)

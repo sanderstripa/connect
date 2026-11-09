@@ -1,9 +1,7 @@
-Connect 0.4.1
+# Connect 0.4.2
 
-- Updated light and dark themes to the current Soulu / Connect palette.
-- Browser-style round window controls with pink-red close-button hover.
-- Removed the header divider and bottom CONNECT VPN footer.
-- Added scrollable settings and About Connect VPN with the installed version, developer and by connect. link.
-- Removed Mist support, its bundled sources, imports and component updates. Existing unsupported profiles are removed; supported profiles remain available.
-- Chrome extension: updated colors and removed Mist; connection controls and routing behavior are preserved.
-- Stabilized the upstream Sudoku idle-heap test by clearing both generations of sync.Pool before measuring retained connection memory; runtime code and the 8 KiB limit are unchanged.
+- Главное окно появляется после загрузки конфигурации, применения темы и подготовки интерфейса. Промежуточное белое окно «Загрузка» больше не показывается.
+- Проверка установленной версии выполняется отдельно и не задерживает показ интерфейса.
+- Нативный фон окна перед показом согласуется со светлой или тёмной темой.
+- При скрытии окна и смене фокуса сбрасывается подсветка оконных кнопок. После восстановления из трея кнопка закрытия подсвечивается только при движении указателя над ней.
+- Добавлены проверки готовности интерфейса и сброса подсветки.

@@ -105,7 +105,7 @@ func restoredWindowPosition(p windowPosition, screens []*application.Screen, wid
 
 // Only the main UI owns this small file. It never rewrites VPN profiles or
 // saves minimized/maximized coordinates. Movement is already debounced by Wails.
-func bindWindowPosition(app *application.App, w application.Window, startHidden bool) func() {
+func bindWindowPosition(app *application.App, w application.Window, _ bool) func() {
 	file := windowPositionPath()
 	var ready atomic.Bool
 	var mu sync.Mutex
@@ -134,9 +134,6 @@ func bindWindowPosition(app *application.App, w application.Window, startHidden 
 			}
 		}
 		ready.Store(true)
-		if !startHidden {
-			w.Show()
-		}
 	})
 	w.OnWindowEvent(events.Common.WindowDidMove, func(_ *application.WindowEvent) {
 		if w.IsVisible() {

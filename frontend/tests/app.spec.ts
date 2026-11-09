@@ -99,6 +99,17 @@ test("import, connection state, settings drafts, routing and themes", async ({
     r.fulfill({ status: 404, body: "" }),
   );
   await page.goto("/");
+  await expect(page.locator('.loading')).toHaveCount(0);
+  const closeControl = page.locator('.window-close');
+  await closeControl.hover();
+  await expect(closeControl).toHaveClass(/pointer-hover/);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(closeControl).not.toHaveClass(/pointer-hover/);
+  await expect(closeControl).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(closeControl).not.toHaveClass(/pointer-hover/);
+  await page.mouse.move(20, 100);
+
   await page.evaluate(() => document.fonts.ready);
   await assertFits(page);
   await expect(page.getByText("Добавьте сервер, чтобы начать")).toBeVisible();

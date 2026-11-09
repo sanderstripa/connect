@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import './styles/connect-ui-v1.css'
-import { Window } from '@wailsio/runtime'
+import { Window, Events } from '@wailsio/runtime'
 
 window.addEventListener('keyup', (event) => {
   if (event.key === 'Escape' && new URLSearchParams(location.search).has('tray')) {
@@ -46,6 +46,10 @@ const renderFatal = (err: unknown) => {
   container.textContent = message
   document.body.innerHTML = ''
   document.body.appendChild(container)
+  // Keep startup errors visible even though normal startup waits for hydration.
+  if (!new URLSearchParams(location.search).has('tray')) {
+    void Events.Emit('main:ready', { dark: false })
+  }
 }
 
 window.addEventListener('error', (e) => renderFatal((e as ErrorEvent).error || (e as any).message))
