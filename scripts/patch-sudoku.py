@@ -23,3 +23,10 @@ for args, mapped in [('s.reply, *clientAddr', 's.reply, net.UDPAddrFromAddrPort(
     replace('internal/app/client_udp_session.go', 's.udpConn.WriteToUDPAddrPort(' + args + ')', 'udpWriteTo(s.udpConn, ' + mapped + ')')
 if '//go:debug multipathtcp=0' not in (core / 'cmd/sudoku-tunnel/main.go').read_text():
     raise RuntimeError('Upstream MPTCP mitigation is missing')
+
+# sync.Pool keeps a victim generation after one GC. Clear both generations so
+# the idle-connection budget measures retained connections rather than pooled
+# buffers left over by this package's other tests. Keep the 8 KiB assertion.
+replace('pkg/crypto/idle_memory_test.go',
+        '\truntime.GC()\n\truntime.ReadMemStats(&after)',
+        '\truntime.GC()\n\truntime.GC()\n\truntime.ReadMemStats(&after)')
