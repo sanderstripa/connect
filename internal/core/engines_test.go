@@ -29,9 +29,10 @@ func TestEngineImportRejectsBadInputs(t *testing.T) {
 		}
 	}
 }
-func TestMistImport(t *testing.T) {
-	n, e := ParseEngineLink(`{"token":"test","endpoints":[{"authority":"example.com","dial_addresses":["127.0.0.1:443"],"path":"/mist"}]}`)
-	if e != nil || n.Protocol != "mist" || n.ServerAddress != "127.0.0.1:443" {
-		t.Fatalf("%+v %v", n, e)
+func TestMistImportRejected(t *testing.T) {
+	for _, link := range []string{`mist://dGVzdA`, `{"token":"test","endpoints":[{"dial_addresses":["127.0.0.1:443"]}]}`} {
+		if _, err := ParseEngineLink(link); err == nil {
+			t.Fatalf("retired Mist configuration unexpectedly accepted: %q", link)
+		}
 	}
 }
