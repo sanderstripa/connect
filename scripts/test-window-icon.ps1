@@ -60,7 +60,7 @@ New-Item -ItemType Directory -Force (Join-Path $sandbox 'roaming'),(Join-Path $s
 $oldAppData=$env:APPDATA; $oldLocalAppData=$env:LOCALAPPDATA
 try {
  $env:APPDATA=Join-Path $sandbox 'roaming'; $env:LOCALAPPDATA=Join-Path $sandbox 'local'
- $process=Start-Process -FilePath $executable -PassThru -WindowStyle Hidden
+ $process=Start-Process -FilePath $executable -PassThru
 } finally {$env:APPDATA=$oldAppData; $env:LOCALAPPDATA=$oldLocalAppData}
 try {
  $deadline=(Get-Date).AddSeconds(90); $matched=$false
