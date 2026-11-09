@@ -108,6 +108,11 @@ func configChangeRequiresRestart(prev AppConfig, next AppConfig) bool {
 }
 
 func (b *Backend) UpsertNode(node NodeConfig) (NodeConfig, error) {
+	switch protocolOf(node) {
+	case "sudoku", "xray", "amneziawg":
+	default:
+		return NodeConfig{}, fmt.Errorf("unsupported protocol: %s", protocolOf(node))
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	previous := cloneConfig(b.cfg)

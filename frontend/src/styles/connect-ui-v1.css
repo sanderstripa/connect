@@ -116,4 +116,17 @@
 .app-shell .page-home .eyebrow-row .icon-button:hover { background: none; }
 .app-shell .settings-icon { display: inline-flex; width: 24px; height: 24px; pointer-events: none; }
 .app-shell .home-footer .footer-brand { transform: translateY(-2px); }
-.app-shell .window-actions button:hover { background: none; }
+
+
+/* Shared Soulu / Connect palette and window controls. */
+.app-shell .titlebar { border-bottom: 0; }
+.app-shell .window-actions button { width:32px; height:32px; border-radius:50%; color:var(--text); padding:0; }
+.app-shell .window-actions button:hover { background:var(--hover); }
+.app-shell .window-actions .window-close:hover { background:#f6d1d9; }
+:root[data-theme="dark"] .app-shell .window-actions .window-close:hover { background:#54242f; }
+.app-shell .page-settings { overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+.about-connect p { display:flex; justify-content:space-between; gap:12px; font-size:11px; color:var(--muted); line-height:2; }
+.about-connect p span { color:var(--text); }
+.app-shell .connect-link { display:block; margin:18px auto 0; padding:6px; font-size:11px; color:var(--muted); }
+.app-shell .connect-link:hover { color:var(--text); }
+.toast { position:fixed; bottom:12px; left:20px; right:20px; padding:10px; background:var(--bg); color:var(--muted); font-size:11px; border:1px solid var(--line); border-radius:8px; }

@@ -21,7 +21,7 @@ func ParseImportLink(link string) (*NodeConfig, error) {
 	if awgconfig.IsConfig(link) {
 		return ParseEngineLink(link)
 	}
-	if strings.HasPrefix(link, "vless://") || strings.HasPrefix(link, "trojan://") || strings.HasPrefix(link, "vmess://") || strings.HasPrefix(link, "mist://") || strings.HasPrefix(link, "{") {
+	if strings.HasPrefix(link, "vless://") || strings.HasPrefix(link, "trojan://") || strings.HasPrefix(link, "vmess://") {
 		return ParseEngineLink(link)
 	}
 	if strings.HasPrefix(link, "sudoku://") {

@@ -11,7 +11,7 @@ After updating, reload Connect once at chrome://extensions. Existing profiles ar
 The desktop window does not need to be running. Chrome starts its own local
 helper. Profiles are separate: %APPDATA%\connect-chrome\config.json.
 Supported: Sudoku links/subscriptions, VLESS/VMess/Trojan including xhttp,
-and MIST client JSON (or mist:// Base64-encoded client JSON).
+and AmneziaWG .conf profiles.
 
 This component protects Chrome proxy-compatible traffic, not the whole OS.
 WebRTC non-proxied UDP is disabled while enabled. A failed helper leaves the

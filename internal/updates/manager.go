@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-const AppVersion = "0.4.0"
+const AppVersion = "0.4.1"
 
 var operations sync.Mutex
 
@@ -90,9 +90,7 @@ var sources = map[string]source{
 	"app":       {"sanderstripa/connect", "Connect-Setup.exe", nil},
 	"xray":      {"XTLS/Xray-core", "Xray-windows-64.zip", []string{"xray.exe"}},
 	"sudoku":    {"sanderstripa/connect", "Connect-Sudoku-", []string{"sudoku.exe"}},
-	// Upstream Mist binaries do not implement Connect's SOCKS adapter.
-	"mist": {"sanderstripa/connect", "Connect-Mist-windows-amd64.zip", []string{"mist-client.exe"}},
-	"geo":  {"Loyalsoldier/v2ray-rules-dat", "", []string{"geoip.dat", "geosite.dat"}},
+	"geo":       {"Loyalsoldier/v2ray-rules-dat", "", []string{"geoip.dat", "geosite.dat"}},
 }
 
 // Compatible packages keep the upstream protocol version separate from the

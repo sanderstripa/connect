@@ -123,6 +123,10 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await expect(page.locator(".page-home .primary")).toHaveCount(0);
   expect(state.tunRunning).toBe(true);
   await expect(page.locator("main")).not.toContainText(/\b\d{2}:\d{2}:\d{2}\b/);
+  await expect(page.locator(".titlebar")).toHaveCSS("border-bottom-width", "0px");
+  await page.locator(".window-close").hover();
+  await expect(page.locator(".window-close")).toHaveCSS("border-radius", "50%");
+  await expect(page.locator(".window-close")).toHaveCSS("background-color", "rgb(246, 209, 217)");
   await page.getByRole("button", { name: "Настройки", exact: true }).click();
   await expect(
     page.getByRole("checkbox", { name: "VPN для всего устройства" }),
@@ -147,6 +151,12 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await page.getByRole("button", { name: "Настройки", exact: true }).click();
   await expect(page.getByLabel("Домены исключений")).toBeVisible();
   await page.setViewportSize({width: 328, height: 528});
+  await expect(page.locator("footer")).toHaveCount(0);
+  await page.getByRole("button", {name: "by connect.", exact:true}).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("heading", {name:"О Connect VPN"})).toBeVisible();
+  expect(await page.locator(".page-settings").evaluate(e => e.scrollHeight > e.clientHeight && e.scrollTop > 0)).toBe(true);
+  await page.locator(".page-settings").evaluate(e => e.scrollTop = 0);
+
   await assertFits(page);
   const hint = await page.locator('.reconnect-hint').boundingBox();
   const save = await page.getByRole('button', {name: 'Сохранить настройки'}).boundingBox();
@@ -159,6 +169,9 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await page.getByRole("switch", { name: "Подключаться при запуске" }).check();
   await page.getByRole("switch", { name: "Запускать вместе с Windows" }).check();
   await page.getByRole("button", { name: "Тёмная", exact: true }).click();
+  await page.locator(".window-close").hover();
+  await expect(page.locator(".window-close")).toHaveCSS("background-color", "rgb(84, 36, 47)");
+
   expect(cfg.core.autoStart).toBe(false);
   await page.getByRole("combobox", { name: "Режим" }).click();
   await page.getByRole("option", { name: "Все, кроме списка" }).click();
@@ -277,7 +290,7 @@ async function assertFits(page: import("@playwright/test").Page) {
   await page.evaluate(() => document.fonts.ready);
   const metrics = await page.evaluate(() => {
     const main = document.querySelector("main")!;
-    const footer = document.querySelector("footer")!.getBoundingClientRect();
+    const footer = main.getBoundingClientRect();
     const controls = [
       ...main.querySelectorAll("button,select,textarea,input"),
     ].filter((e) => e.getBoundingClientRect().height);
@@ -290,23 +303,23 @@ async function assertFits(page: import("@playwright/test").Page) {
       lastControl: Math.max(
         ...controls.map((e) => e.getBoundingClientRect().bottom),
       ),
-      footerTop: footer.top,
+      footerTop: footer.bottom,
     };
   });
   expect(metrics.root).toBeLessThanOrEqual(metrics.viewport);
   expect(metrics.width).toBeLessThanOrEqual(metrics.viewportWidth);
   expect(metrics.footerBottom).toBeLessThanOrEqual(metrics.viewport + 1);
-  expect(metrics.lastControl).toBeLessThanOrEqual(metrics.footerTop);
+  if (!(await page.locator("main").getAttribute("class"))?.includes("page-settings")) expect(metrics.lastControl).toBeLessThanOrEqual(metrics.footerTop);
   await expect(page.locator("main")).not.toContainText(
     /ЛИЧНОЕ СОЕДИНЕНИЕ|Свобода быть онлайн|Ваше спокойное пространство|Для VPN запустите приложение/,
   );
 }
 
 test('connection card switches saved profiles without duplicate protocol buttons',async({page})=>{
- let cfg:any={version:7,activeNodeId:'s',nodes:[{id:'s',name:'Sudoku server',protocol:'sudoku',serverAddress:'s.example:443'},{id:'x',name:'Xray server',protocol:'xray',serverAddress:'x.example:443'},{id:'m',name:'Mist server',protocol:'mist',serverAddress:'m.example:443'}],routing:{proxyMode:'global'},tun:{enabled:true},core:{autoStart:false},ui:{theme:'light'}};
+ let cfg:any={version:7,activeNodeId:'s',nodes:[{id:'s',name:'Sudoku server',protocol:'sudoku',serverAddress:'s.example:443'},{id:'x',name:'Xray server',protocol:'xray',serverAddress:'x.example:443'}],routing:{proxyMode:'global'},tun:{enabled:true},core:{autoStart:false},ui:{theme:'light'}};
  let state:any={running:true,coreRunning:true,tunRunning:true,traffic:{recentBandwidth:[]},kernel:{},recentLogs:[]};const switched:string[]=[];
  await page.route('**/wails/runtime',async route=>{const req=route.request().postDataJSON();let result:any=null;if(req.object===0){const method=ids[req.args.methodID];if(method==='GetConfig')result=cfg;else if(method==='GetState')result=state;else if(method==='SwitchNode'){cfg.activeNodeId=req.args.args[0];switched.push(cfg.activeNodeId)}}await route.fulfill({contentType:'application/json',body:JSON.stringify(result)})});
- await page.goto('/');await expect(page.getByText('Sudoku server',{exact:true})).toBeVisible();await expect(page.locator('.protocol-picker')).toHaveCount(0);for(const name of ['Xray server','Mist server','Sudoku server']){await page.locator('.server-card').click();await page.getByRole('button',{name:new RegExp(name)}).click();await expect(page.getByText(name,{exact:true})).toBeVisible();await expect(page.getByText('Соединение активно')).toBeVisible();await assertFits(page)}expect(switched).toEqual(['x','m','s']);
+ await page.goto('/');await expect(page.getByText('Sudoku server',{exact:true})).toBeVisible();await expect(page.locator('.protocol-picker')).toHaveCount(0);for(const name of ['Xray server','Sudoku server']){await page.locator('.server-card').click();await page.getByRole('button',{name:new RegExp(name)}).click();await expect(page.getByText(name,{exact:true})).toBeVisible();await expect(page.getByText('Соединение активно')).toBeVisible();await assertFits(page)}expect(switched).toEqual(['x','s']);
 });
 
 test('settings language persists immediately without discarding unsaved routing',async({page})=>{

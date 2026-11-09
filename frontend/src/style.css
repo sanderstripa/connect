@@ -8,12 +8,12 @@
   font-family: Montserrat, sans-serif;
   color: var(--text);
   background: var(--bg);
-  --bg: #f7f7f5;
-  --text: #171a1d;
-  --muted: #80858b;
-  --line: #dadbdc;
-  --hover: #eee;
-  --accent: #171a1d;
+  --bg: #ffffff;
+  --text: #242628;
+  --muted: #73767b;
+  --line: #e6e7e9;
+  --hover: #ededef;
+  --accent: #242628;
   --inverse: #fff;
   --green: #438067;
   --red: #aa4242;
@@ -22,13 +22,13 @@
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme="dark"] {
-  --bg: #0c0c0d;
-  --text: #ededee;
-  --muted: #81858c;
-  --line: #303236;
-  --hover: #1a1b1e;
-  --accent: #e6e7e9;
-  --inverse: #121315;
+  --bg: #08090b;
+  --text: #eeeeef;
+  --muted: #96979d;
+  --line: #35363b;
+  --hover: #202125;
+  --accent: #eeeeef;
+  --inverse: #08090b;
   --green: #8cbaa2;
   --red: #e69595;
   color-scheme: dark;

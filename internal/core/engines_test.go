@@ -29,9 +29,20 @@ func TestEngineImportRejectsBadInputs(t *testing.T) {
 		}
 	}
 }
-func TestMistImport(t *testing.T) {
-	n, e := ParseEngineLink(`{"token":"test","endpoints":[{"authority":"example.com","dial_addresses":["127.0.0.1:443"],"path":"/mist"}]}`)
-	if e != nil || n.Protocol != "mist" || n.ServerAddress != "127.0.0.1:443" {
-		t.Fatalf("%+v %v", n, e)
+func TestRemovedProtocolImportRejected(t *testing.T) {
+	for _, input := range []string{"mist://test", `{"token":"test","endpoint":{"dial_address":"127.0.0.1:443"}}`} {
+		if _, err := ParseEngineLink(input); err == nil {
+			t.Fatal("accepted removed protocol")
+		}
+	}
+}
+
+func TestNormalizeRemovesUnsupportedProfiles(t *testing.T) {
+	cfg := &AppConfig{ActiveNodeID: "removed", Nodes: []NodeConfig{
+		{ID: "removed", Protocol: "mist"}, {ID: "kept", Protocol: "xray"},
+	}}
+	normalizeConfigForOS(cfg, t.TempDir(), "windows")
+	if len(cfg.Nodes) != 1 || cfg.Nodes[0].ID != "kept" || cfg.ActiveNodeID != "kept" {
+		t.Fatalf("unsupported profile retained or active profile not repaired: %+v", cfg)
 	}
 }

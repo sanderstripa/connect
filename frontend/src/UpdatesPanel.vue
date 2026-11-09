@@ -6,10 +6,10 @@ type Component={id:string;installed:string;build?:string;previous:string;release
 const props=defineProps<{language:string;running:boolean}>();
 const en=computed(()=>props.language==='en');
 const text=(ru:string,eng:string)=>en.value?eng:ru;
-const ids=['app','xray','geo','sudoku','mist','amneziawg'];
+const ids=['app','xray','geo','sudoku','amneziawg'];
 const items=ref<Record<string,Component>>({}),selected=ref<Record<string,string>>({}),working=ref(''),notice=ref(''),problem=ref('');
 const previews=ref(localStorage.getItem('connect-update-preview')!=='false');
-const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',mist:'Mist',amneziawg:'AmneziaWG'}[id]||id);
+const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',amneziawg:'AmneziaWG'}[id]||id);
 const sameVersion=(id:string)=>!!selected.value[id]&&selected.value[id].replace(/^v/,'')===items.value[id]?.installed.replace(/^v/,'');
 const call=(method:string,...args:unknown[])=>Call.ByName('main.App.'+method,...args);
 async function status(id:string,check:boolean){const item=await call('GetUpdateStatus',id,check,previews.value) as Component;items.value[id]=item;selected.value[id]=item.releases?.[0]?.version||'';}
@@ -41,7 +41,6 @@ onMounted(()=>perform('loading',async()=>{for(const id of ids)await status(id,fa
    <p class="update-installed">{{text('Установлено','Installed')}} <strong>{{items[id]?.installed||text('Не установлено','Not installed')}}</strong></p>
    <p v-if="items[id]?.build" class="update-source">{{items[id].build}}</p>
    <p v-if="items[id]?.source" class="update-source"><a :href="'https://github.com/'+items[id].source" target="_blank" rel="noopener noreferrer">{{text('Источник обновлений','Update source')}}</a></p>
-   <p v-if="id==='mist'" class="hint">{{text('Экспериментальный Mist. Совместимые сборки Connect с адаптером SOCKS.','Experimental Mist. Connect-compatible builds with the SOCKS adapter.')}}</p>
    <label v-if="items[id]?.releases?.length" class="release-label">{{text('Доступные версии','Available versions')}}
     <span class="ui-select-field"><select class="ui-select" v-model="selected[id]" :disabled="!!working" :aria-label="name(id)+' '+text('версия','version')"><option v-for="release in items[id].releases" :key="release.version" :value="release.version">{{release.version}}{{release.prerelease?text(' · предварительная',' · pre-release'):''}}</option></select><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
    </label>

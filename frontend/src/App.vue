@@ -7,7 +7,7 @@ import {
   watch,
   nextTick,
 } from "vue";
-import { Window, Events } from "@wailsio/runtime";
+import { Window, Events, Browser, Call } from "@wailsio/runtime";
 import {
   Power,
   Plus,
@@ -35,6 +35,8 @@ import type { AppConfig, RuntimeState } from "./types";
 import ModeSelect from "./ModeSelect.vue";
 import UpdatesPanel from "./UpdatesPanel.vue";
 import settingsIcon from "../../docs/assets/CONNECT-settings-08.svg?raw";
+const appVersion = ref("…");
+const openConnect = () => Browser.OpenURL("https://connect.sanderstripa.com/");
 const draft = ref<AppConfig>();
 const config = ref<AppConfig>(),
   state = ref<RuntimeState>();
@@ -90,7 +92,6 @@ const english: Record<string,string> = {
   "Запускать вместе с Windows": "Launch with Windows",
   "Подключаться при запуске": "Connect on startup",
   "РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ": "SPLIT TUNNELING",
-  "Для Mist выберите Весь трафик.": "For Mist, select All traffic.",
   "Режим": "Mode",
   "Домены исключений": "Excluded domains",
   "Один домен на строку. Включая поддомены.": "One domain per line. Includes subdomains.",
@@ -108,13 +109,13 @@ const english: Record<string,string> = {
   "Скопировать журнал": "Copy log",
   "НОВОЕ СОЕДИНЕНИЕ": "NEW CONNECTION",
   "Закрыть": "Close",
-  "Вставьте ссылку сервера или конфигурацию Mist / AmneziaWG (.conf).": "Paste a server link or Mist / AmneziaWG (.conf) configuration.",
+  "Вставьте ссылку сервера или конфигурацию AmneziaWG (.conf).": "Paste a server link or AmneziaWG (.conf) configuration.",
   "Ссылка соединения": "Connection link",
   "Название": "Name",
   "· необязательно": "· optional",
   "Мой сервер": "My server",
-  "sudoku://, vless://, vmess://, trojan://, JSON Mist или .conf AmneziaWG": "sudoku://, vless://, vmess://, trojan:// Mist JSON or AmneziaWG .conf",
-  "Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON · AmneziaWG .conf": "Sudoku links and subscriptions · Xray with xhttp · Mist JSON · AmneziaWG .conf",
+  "sudoku://, vless://, vmess://, trojan://, .conf AmneziaWG": "sudoku://, vless://, vmess://, trojan:// or AmneziaWG .conf",
+  "Sudoku и подписки Sudoku UI · Xray с xhttp · AmneziaWG .conf": "Sudoku links and subscriptions · Xray with xhttp · AmneziaWG .conf",
   "Добавление…": "Adding…",
   "Сервер добавлен": "Server added",
   "Подписка обновлена": "Subscription updated",
@@ -344,6 +345,10 @@ onMounted(async () => {
   media.addEventListener("change", applyTheme);
   try {
     await reload();
+    try {
+      const info = await Call.ByName("main.App.GetUpdateStatus", "app", false, false) as {installed:string};
+      appVersion.value = info.installed;
+    } catch { appVersion.value = "—"; }
     theme.value = config.value?.ui.theme || "auto";
     applyTheme();
   } catch (e) {
@@ -374,10 +379,10 @@ onBeforeUnmount(() => {
     <header class="titlebar">
       <span class="wordmark">CONNECT<span class="wordmark-dot">.</span></span>
       <div class="window-actions">
-        <button :aria-label="tr('Свернуть')" @click="Window.Minimise()">
-          <Minus :size="15" /></button
-        ><button :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
-          <X :size="15" />
+        <button class="window-minimize" :aria-label="tr('Свернуть')" @click="Window.Minimise()">
+          <Minus :size="16" :stroke-width="1.25" /></button
+        ><button class="window-close" :aria-label="tr('Скрыть в трей')" @click="Window.Hide()">
+          <X :size="14" :stroke-width="1.25" />
         </button>
       </div>
     </header>
@@ -426,7 +431,7 @@ onBeforeUnmount(() => {
         <button v-else class="server-card" @click="importing = true">
           <Plus :size="22" /><span class="server-details"
             ><strong> {{ tr("Добавить соединение") }} </strong
-            ><small>Sudoku · Xray · Mist · AmneziaWG</small></span
+            ><small>Sudoku · Xray · AmneziaWG</small></span
           ><ChevronRight :size="17" />
         </button>
         <div class="traffic">
@@ -509,7 +514,7 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <section class="settings-section">
-            <h2><GitBranch :size="17" /> {{ tr("РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ") }} </h2><p v-if="selectedProtocol === 'amneziawg'" class="hint">{{ language === 'en' ? 'For AmneziaWG, select All traffic.' : 'Для AmneziaWG выберите Весь трафик.' }}</p><p v-if="selectedProtocol === 'mist'" class="hint"> {{ tr("Для Mist выберите Весь трафик.") }} </p>
+            <h2><GitBranch :size="17" /> {{ tr("РАЗДЕЛЬНОЕ ТУННЕЛИРОВАНИЕ") }} </h2><p v-if="selectedProtocol === 'amneziawg'" class="hint">{{ language === 'en' ? 'For AmneziaWG, select All traffic.' : 'Для AmneziaWG выберите Весь трафик.' }}</p>
             <fieldset :disabled="busy">
               <label class="field-label" for="routing"> {{ tr("Режим") }} </label
               ><ModeSelect v-model="split" :disabled="busy" :language="language" /><textarea
@@ -529,6 +534,12 @@ onBeforeUnmount(() => {
               :size="15"
             />
           </button></div>
+          <section class="settings-section about-connect">
+            <h2>{{ language === 'en' ? 'About Connect VPN' : 'О Connect VPN' }}</h2>
+            <p>{{ language === 'en' ? 'Version' : 'Версия' }} <span>{{ appVersion }}</span></p>
+            <p>{{ language === 'en' ? 'Developer' : 'Разработчик' }} <span>Sander Stripa</span></p>
+            <button class="connect-link" @click="openConnect">by connect.</button>
+          </section>
         </template>
         <template v-if="page === 'servers'"
           ><div class="server-list">
@@ -604,11 +615,7 @@ onBeforeUnmount(() => {
         <span class="notice-symbol" aria-hidden="true">!</span><span>{{ error || state?.routeSetupError || state?.lastError }}</span>
       </div>
     </main>
-    <footer :class="{ 'home-footer': page === 'home' }">
-      <span :class="{ 'footer-brand': !message }" :role="message ? 'status' : undefined">{{
-        tr(message) || "CONNECT VPN"
-      }}</span>
-    </footer>
+    <div v-if="message" class="toast" role="status">{{ tr(message) }}</div>
     <div
       v-if="importing"
       class="modal-backdrop"
@@ -631,14 +638,14 @@ onBeforeUnmount(() => {
             <X :size="18" />
           </button>
         </div>
-        <p class="muted"> {{ tr("Вставьте ссылку сервера или конфигурацию Mist / AmneziaWG (.conf).") }} </p>
+        <p class="muted"> {{ tr("Вставьте ссылку сервера или конфигурацию AmneziaWG (.conf).") }} </p>
         <form @submit.prevent="importLink">
           <label class="field-label" for="link"> {{ tr("Ссылка соединения") }} </label
           ><textarea
             id="link"
             v-model="link"
             autofocus
-            :placeholder="tr('sudoku://, vless://, vmess://, trojan://, JSON Mist или .conf AmneziaWG')"
+            :placeholder="tr('sudoku://, vless://, vmess://, trojan://, .conf AmneziaWG')"
             rows="4"
             required
             :disabled="busy"
@@ -652,7 +659,7 @@ onBeforeUnmount(() => {
             maxlength="80"
             :disabled="busy"
           />
-          <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · Mist JSON · AmneziaWG .conf") }} </p>
+          <p class="hint"> {{ tr("Sudoku и подписки Sudoku UI · Xray с xhttp · AmneziaWG .conf") }} </p>
           <div v-if="error" class="notice error" role="alert"><span class="notice-symbol" aria-hidden="true">!</span><span>{{ error }}</span></div>
           <button class="primary" :disabled="busy || !link.trim()">
             {{ busy ? tr("Добавление…") : tr("Добавить соединение") }}

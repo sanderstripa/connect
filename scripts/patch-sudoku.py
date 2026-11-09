@@ -23,3 +23,21 @@ for args, mapped in [('s.reply, *clientAddr', 's.reply, net.UDPAddrFromAddrPort(
     replace('internal/app/client_udp_session.go', 's.udpConn.WriteToUDPAddrPort(' + args + ')', 'udpWriteTo(s.udpConn, ' + mapped + ')')
 if '//go:debug multipathtcp=0' not in (core / 'cmd/sudoku-tunnel/main.go').read_text():
     raise RuntimeError('Upstream MPTCP mitigation is missing')
+
+# sync.Pool keeps a victim generation after one GC. Clear both generations so
+# the idle-connection budget measures retained connections rather than pooled
+# buffers left over by this package's other tests. Keep the 8 KiB assertion.
+replace('pkg/crypto/idle_memory_test.go',
+        '\truntime.GC()\n\truntime.ReadMemStats(&after)',
+        '\truntime.GC()\n\truntime.GC()\n\truntime.ReadMemStats(&after)')
+# The peer can finish reading before the writer returns its pooled frame.
+# Wait for every write to finish before calling the connections idle.
+replace('pkg/crypto/idle_memory_test.go', '"runtime"', '"runtime"\n\t"sync"')
+replace('pkg/crypto/idle_memory_test.go', '\tvar conns []*RecordConn', '\tvar writers sync.WaitGroup\n\tvar conns []*RecordConn')
+replace('pkg/crypto/idle_memory_test.go',
+        '\t\t\tgo func(w *RecordConn) { _, _ = w.Write(payload) }(pair[0])',
+        '\t\t\twriters.Add(1)\n\t\t\tgo func(w *RecordConn) { defer writers.Done(); _, _ = w.Write(payload) }(pair[0])')
+replace('pkg/crypto/idle_memory_test.go',
+        '\t}\n\truntime.GC()\n\truntime.GC()\n\truntime.ReadMemStats(&after)',
+        '\t}\n\twriters.Wait()\n\truntime.GC()\n\truntime.GC()\n\truntime.ReadMemStats(&after)')
+replace('pkg/crypto/idle_memory_test.go', '\tclose(stop)', '\tclose(stop)\n\tdefer func() { for _, c := range conns { _ = c.Close() } }()')

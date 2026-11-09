@@ -1,8 +1,0 @@
-/dist/
-*.exe
-*.log
-configs/client.json
-configs/server.json
-*.pem
-*.key
-.DS_Store
