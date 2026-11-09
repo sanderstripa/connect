@@ -50,6 +50,9 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 		return proxyStartPlan{}, errors.New("no active node")
 	}
 	plan.node = *node
+	if protocolOf(plan.node) == "mist" {
+		return proxyStartPlan{}, fmt.Errorf("Mist больше не поддерживается; удалите старое соединение")
+	}
 	plan.withTun = req.WithTun && b.cfg.Tun.Enabled
 	if b.browserOnly {
 		plan.withTun = false
@@ -66,9 +69,6 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 	// HEV owns MapDNS for every SOCKS core. Keep its virtual resolver stable
 	// across protocols; a global UDP/443 firewall rule also blocks transports.
 	runtimeConfig.Tun.BlockQUIC = false
-	if protocolOf(plan.node) == "mist" && runtimeConfig.Routing.ProxyMode != "global" {
-		return proxyStartPlan{}, fmt.Errorf("Mist: выберите режим Весь трафик")
-	}
 	if protocolOf(plan.node) == "amneziawg" && (runtimeConfig.Routing.ProxyMode != "global" || runtimeConfig.Routing.CustomRulesEnabled) {
 		return proxyStartPlan{}, fmt.Errorf("AmneziaWG: выберите режим Весь трафик / select All traffic")
 	}
@@ -93,9 +93,6 @@ func (b *Backend) prepareProxyStartLocked(req StartRequest) (proxyStartPlan, err
 	}
 	componentName := protocolOf(plan.node)
 	componentFile := componentName + ".exe"
-	if componentName == "mist" {
-		componentFile = "mist-client.exe"
-	}
 	if componentName == "amneziawg" {
 		componentFile = "awg-client.exe"
 	}
