@@ -43,7 +43,8 @@ for (const failed of [false, true]) {
       if (failed) await expect(page.getByRole('alert')).toContainText('Startup unavailable');
       else {
         expect(readiness).toEqual([{ data: { dark: true }, loading: 0, theme: 'dark' }]);
-        await expect(page.getByRole('button', { name: 'Добавить соединение', exact: true })).toBeVisible();
+        await expect(page.locator('.server-card')).toBeVisible();
+        await expect(page.locator('.server-card')).toContainText('Добавить соединение');
       }
     } finally { releaseVersion(); }
   });
