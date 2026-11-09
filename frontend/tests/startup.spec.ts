@@ -25,7 +25,7 @@ for (const failed of [false, true]) {
         if (method === 'GetState') result = { running: false, traffic: { recentBandwidth: [] }, recentLogs: [] };
         if (req.args.methodName === 'main.App.GetUpdateStatus') {
           await versionGate;
-          result = { installed: '0.4.2' };
+          result = { installed: '0.4.3' };
         }
       }
       if (req.object === 3 && req.args.name === 'main:ready') {

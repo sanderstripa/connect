@@ -18,6 +18,7 @@ public static class ConnectWindowIconProbe {
  [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
  [DllImport("user32.dll")] static extern bool DrawIconEx(IntPtr dc, int x, int y, IntPtr icon, int cx, int cy, uint step, IntPtr brush, uint flags);
  [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+ [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
  [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr icon);
  [DllImport("shell32.dll", CharSet=CharSet.Unicode)] static extern uint ExtractIconEx(string path, int index, out IntPtr large, out IntPtr small, uint count);
  public static IntPtr Find(uint processId) {
@@ -67,9 +68,9 @@ try {
   $process.Refresh()
   if($process.HasExited){throw "Connect exited before its window icon was verified: $($process.ExitCode)"}
   $window=[ConnectWindowIconProbe]::Find([uint32]$process.Id)
-  if($window -ne [IntPtr]::Zero){$matched=[ConnectWindowIconProbe]::Matches($window,$executable)}
+  if($window -ne [IntPtr]::Zero){$matched=[ConnectWindowIconProbe]::IsWindowVisible($window) -and [ConnectWindowIconProbe]::Matches($window,$executable)}
   if(!$matched){Start-Sleep -Milliseconds 300}
  } while(!$matched -and (Get-Date) -lt $deadline)
- if(!$matched){throw 'Actual small or large window icon differs from the application EXE'}
- Write-Host 'PASS: actual small and large CONNECT window icons match the executable'
+ if(!$matched){throw 'Main window did not become visible with the expected application icons'}
+ Write-Host 'PASS: hydrated CONNECT window becomes visible and its icons match the executable'
 } finally {if(-not $process.HasExited){$process.Kill();$process.WaitForExit()}}

@@ -133,3 +133,5 @@
 
 /* WebView can retain :hover while the native window is hidden. */
 .app-shell .window-actions button:not(.pointer-hover):hover { background:transparent; color:var(--text); }
+/* Reset immediately: a fade paused while hidden can resume on tray restore. */
+.app-shell .window-actions button:not(.pointer-hover) { transition:none; }

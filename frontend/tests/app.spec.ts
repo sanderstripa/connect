@@ -105,6 +105,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await expect(closeControl).toHaveClass(/pointer-hover/);
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect(closeControl).not.toHaveClass(/pointer-hover/);
+  await expect(closeControl).toHaveCSS('transition-duration', '0s');
   await expect(closeControl).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(closeControl).not.toHaveClass(/pointer-hover/);
