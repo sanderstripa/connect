@@ -1,6 +1,3 @@
-# Connect 0.4.4
+# Connect 1.4.5
 
-- Обновлена светлая и тёмная палитра установщика в стиле Soulu.
-- Добавлены синие активные выделения, состояния наведения, нажатия и клавиатурного фокуса.
-- Кнопки сворачивания и закрытия получили тонкие центрированные значки и круглую подсветку; у закрытия — розово-красную.
-- Размеры, расположение элементов и логика установки сохранены. Оформление общего ядра ограничено Connect.
+Unified installer appearance: Screencast light palette and selected controls, Screenshot dark background, white dark-theme selection, centered caption feedback and underlined Back hover. Correct application and installer versions; canonical Release-x64 installer filename. Existing installation options and behavior retained.

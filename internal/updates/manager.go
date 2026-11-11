@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-const AppVersion = "0.4.4"
+const AppVersion = "1.4.5"
 
 var operations sync.Mutex
 
@@ -107,6 +107,7 @@ func sudokuPackageVersion(name string) string {
 	return v
 }
 func wantedAsset(id, name string) bool {
+	if id == "app" { return name == "Connect-Setup.exe" || regexp.MustCompile(`^Connect-[0-9]+\.[0-9]+\.[0-9]+-Release-x64\.exe$`).MatchString(name) }
 	if id == "sudoku" {
 		return sudokuPackageVersion(name) != ""
 	}
@@ -237,7 +238,7 @@ func (m *Manager) catalog(ctx context.Context, id string, preview bool) ([]Relea
 		for _, name := range required {
 			found := false
 			for _, a := range r.Assets {
-				if (a.Name == name || (id == "sudoku" && wantedAsset(id, a.Name))) && validDigest(a.Digest) {
+				if (a.Name == name || ((id == "sudoku" || id == "app") && wantedAsset(id, a.Name))) && validDigest(a.Digest) {
 					if id == "sudoku" {
 						version = sudokuPackageVersion(a.Name) + "+connect." + strings.TrimPrefix(r.Tag, "v")
 					}
