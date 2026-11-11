@@ -12,3 +12,30 @@ input,textarea{user-select:text}
 
 /* Keep the settings action at the approved VPN baseline, with or without optional controls. */
 #productOptions{min-height:75px;display:flow-root}
+
+/* Soulu palette and control feedback. Geometry and installation behavior stay intact. */
+:root[data-product=connect]{--bg:#f6f6f8;--text:#292a2e;--muted:#797b81;--line:#0000001f;--button:#0879e6;--inverse:#fff;--field:#fffffff2;--accent:#0879e6;--accent-soft:#007aff1f;--hover:#00000014;--pressed:#00000024}
+:root[data-product=connect][data-theme=dark]{--bg:#08090b;--text:#eeeeef;--muted:#96979d;--line:#ffffff18;--button:#409cff;--inverse:#08090b;--field:#191a1e;--accent:#409cff;--accent-soft:#2589ff2b;--hover:#ffffff14;--pressed:#ffffff24}
+:root[data-product=connect] button:hover:not(:disabled){filter:none}
+:root[data-product=connect] .primary:hover:not(:disabled){background:color-mix(in srgb,var(--button) 88%,var(--text))}
+:root[data-product=connect] .primary:active:not(:disabled){background:color-mix(in srgb,var(--button) 76%,var(--text))}
+:root[data-product=connect] .text-button:hover:not(:disabled){color:var(--accent)}
+:root[data-product=connect] .text-button:active:not(:disabled){color:var(--text)}
+:root[data-product=connect] :is(.outlined,.choices button):hover:not(:disabled){background:var(--hover)}
+:root[data-product=connect] :is(.outlined,.choices button):active:not(:disabled){background:var(--pressed)}
+:root[data-product=connect] .choices button[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+:root[data-product=connect] :is(button,input):focus-visible,:root[data-product=connect] input:focus-visible+.switch{outline-color:var(--accent)}
+:root[data-product=connect] .path-line input:focus-visible{border-color:var(--accent)}
+:root[data-product=connect] .switch-row:hover input:not(:disabled)+.switch{border-color:var(--accent)}
+:root[data-product=connect] progress{color:var(--accent)}
+:root[data-product=connect] progress::-webkit-progress-value{background:var(--accent)}
+:root[data-product=connect] .tools button{color:var(--text);border-radius:50%;background-repeat:no-repeat;background-position:center}
+:root[data-product=connect] .tools button:hover:not(:disabled){background-color:var(--hover)}
+:root[data-product=connect] .tools button:active:not(:disabled){background-color:var(--pressed)}
+:root[data-product=connect] #close:hover:not(:disabled){background-color:color-mix(in srgb,#ef4964 22%,var(--bg))}
+:root[data-product=connect] #close:active:not(:disabled){background-color:color-mix(in srgb,#ef4964 34%,var(--bg))}
+/* Masked strokes avoid font-dependent caption glyph alignment. */
+:root[data-product=connect] :is(#close,#minimize){font-size:0;position:relative}
+:root[data-product=connect] :is(#close,#minimize)::after{content:'';position:absolute;inset:0;pointer-events:none;background:currentColor;mask:center / 16px 16px no-repeat var(--caption-icon)}
+:root[data-product=connect] #minimize{--caption-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10' stroke='black' stroke-width='1.25'/%3E%3C/svg%3E")}
+:root[data-product=connect] #close{--caption-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3 3 10 10M13 3 3 13' stroke='black' stroke-width='1.25'/%3E%3C/svg%3E")}
