@@ -7,3 +7,30 @@
 .shell{--wails-draggable:drag;user-select:none}
 button,input,select,textarea,label,.tools{--wails-draggable:no-drag}
 input,textarea{user-select:text}
+
+/* Soulu palette and control feedback. Geometry and installation behavior stay intact. */
+:root{--bg:#f6f6f8;--text:#292a2e;--muted:#797b81;--line:#0000001f;--button:#0879e6;--inverse:#fff;--field:#fffffff2;--accent:#0879e6;--accent-soft:#007aff1f;--hover:#00000014;--pressed:#00000024}
+:root[data-theme=dark]{--bg:#08090b;--text:#eeeeef;--muted:#96979d;--line:#ffffff18;--button:#409cff;--inverse:#08090b;--field:#191a1e;--accent:#409cff;--accent-soft:#2589ff2b;--hover:#ffffff14;--pressed:#ffffff24}
+:root button:hover:not(:disabled){filter:none}
+:root .primary:hover:not(:disabled){background:color-mix(in srgb,var(--button) 88%,var(--text))}
+:root .primary:active:not(:disabled){background:color-mix(in srgb,var(--button) 76%,var(--text))}
+:root .text-button:hover:not(:disabled){color:var(--accent)}
+:root .text-button:active:not(:disabled){color:var(--text)}
+:root :is(.outlined,.choices button):hover:not(:disabled){background:var(--hover)}
+:root :is(.outlined,.choices button):active:not(:disabled){background:var(--pressed)}
+:root .choices button[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+:root :is(button,input):focus-visible,:root input:focus-visible+.switch{outline-color:var(--accent)}
+:root .path-line input:focus-visible{border-color:var(--accent)}
+:root .switch-row:hover input:not(:disabled)+.switch{border-color:var(--accent)}
+:root progress{color:var(--accent)}
+:root progress::-webkit-progress-value{background:var(--accent)}
+:root .tools button{color:var(--text);border-radius:50%;background-repeat:no-repeat;background-position:center}
+:root .tools button:hover:not(:disabled){background-color:var(--hover)}
+:root .tools button:active:not(:disabled){background-color:var(--pressed)}
+:root #close:hover:not(:disabled){background-color:color-mix(in srgb,#ef4964 22%,var(--bg))}
+:root #close:active:not(:disabled){background-color:color-mix(in srgb,#ef4964 34%,var(--bg))}
+/* Masked strokes avoid font-dependent caption glyph alignment. */
+:root :is(#close,#minimize){font-size:0;position:relative}
+:root :is(#close,#minimize)::after{content:'';position:absolute;inset:0;pointer-events:none;background:currentColor;mask:center / 16px 16px no-repeat var(--caption-icon)}
+:root #minimize{--caption-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10' stroke='black' stroke-width='1.25'/%3E%3C/svg%3E")}
+:root #close{--caption-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3 3 10 10M13 3 3 13' stroke='black' stroke-width='1.25'/%3E%3C/svg%3E")}
