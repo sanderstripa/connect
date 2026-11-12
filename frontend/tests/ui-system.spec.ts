@@ -43,6 +43,6 @@ test('Soulu colours and window controls retain settings-only preferences and key
  for(const [button,bg,ink,fill,inverse] of [['Светлая','rgb(255, 255, 255)','rgb(36, 38, 40)','rgb(36, 38, 40)','rgb(255, 255, 255)'],['Тёмная','rgb(8, 9, 11)','rgb(238, 238, 239)','rgb(238, 238, 239)','rgb(8, 9, 11)']]){
   await page.getByRole('button',{name:button,exact:true}).click();await expect(page.locator('html')).toHaveCSS('background-color',bg);await expect(page.locator('html')).toHaveCSS('color',ink);
  }
- await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS'})).toHaveCount(0);expect(cfg.ui.language).toBe('en');
+ await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS'})).toHaveCount(0);await expect.poll(()=>cfg.ui.language).toBe('en');
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.getByRole('button',{name:'Dark',exact:true})).toHaveCSS('transition-duration','0s');
 });
