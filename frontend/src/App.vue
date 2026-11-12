@@ -253,7 +253,8 @@ async function setTheme(value: string) {
     applyTheme();
   });
 }
-watch(page, async () => {
+watch(page, async (_page,previous) => {
+  if(previous==='settings'&&settingsTimer){clearTimeout(settingsTimer);settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());}
   await nextTick();
   window.scrollTo(0, 0);
 });
@@ -261,7 +262,9 @@ watch(domains, () => {
   error.value = "";
 });
 let settingsHydrating=false;
-function openSettings() {
+async function openSettings() {
+  if(settingsTimer){clearTimeout(settingsTimer);settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());}
+  await settingsQueue;
   settingsHydrating=true;
   void nextTick(()=>{settingsHydrating=false;});
   message.value = "";
@@ -281,12 +284,12 @@ let settingsQueue: Promise<void> = Promise.resolve();
 let settingsTimer: ReturnType<typeof setTimeout> | undefined;
 function scheduleSettings(delay = 0) {
  if(settingsTimer) clearTimeout(settingsTimer);
- settingsTimer=setTimeout(()=>{settingsQueue=settingsQueue.then(()=>saveSettings());},delay);
+ settingsTimer=setTimeout(()=>{settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());},delay);
 }
 watch(()=>[draft.value?.ui.launchAtLogin,draft.value?.core.autoStart,split.value],(_next,previous)=>{
  if(!settingsHydrating&&page.value==='settings'&&previous&&draft.value) scheduleSettings();
 });
-watch(domains,()=>{if(page.value==='settings'&&draft.value) scheduleSettings(450);});
+watch(domains,()=>{if(!settingsHydrating&&page.value==='settings'&&draft.value) scheduleSettings(450);});
 async function saveSettings() {
   try {
     if (!draft.value) return;
