@@ -55,5 +55,14 @@ test('Soulu colours and window controls retain settings-only preferences and key
   await expect(page.getByRole('button',{name:'Close settings',exact:true})).toHaveAttribute('aria-expanded','true');
  }
  await expect(page.locator('.view-leave-active')).toHaveCount(0);
+ if(process.env.CONNECT_PREVIEW_DIR){
+  fs.mkdirSync(process.env.CONNECT_PREVIEW_DIR,{recursive:true});
+  for(const [button,theme] of [['Light','light'],['Dark','dark']]){
+   await page.getByRole('button',{name:button,exact:true}).click();
+   await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+   await page.screenshot({path:path.join(process.env.CONNECT_PREVIEW_DIR,`settings-panel-${theme}.png`)});
+  }
+ }
+
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.getByRole('button',{name:'Dark',exact:true})).toHaveCSS('transition-duration','0s');
 });
