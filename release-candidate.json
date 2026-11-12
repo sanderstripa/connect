@@ -2,5 +2,5 @@
   "version": "1.4.7",
   "commit": "cde098a3d29682f19295afbdbb48be2255b7a07d",
   "run": 43317479233,
-  "verification": "final-source-and-hash"
+  "verification": "preserve-published-tag-record-tested-binary-source"
 }

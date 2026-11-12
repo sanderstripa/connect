@@ -36,7 +36,7 @@ jobs:
           $tag="v$($c.version)"
           gh release upload $tag @files SHA256SUMS.txt --clobber
           if($LASTEXITCODE){throw 'Verified asset upload failed'}
-          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/git/refs/tags/$tag" -f "sha=$($c.commit)" -F force=true
-          if($LASTEXITCODE){throw 'Verified tag update failed'}
+          # Preserve the published tag; record the exact tested binary source.
+          "Verified binaries: commit $($c.commit), Windows run $($c.run)." | Add-Content RELEASE_NOTES.md
           gh release edit $tag --notes-file RELEASE_NOTES.md --latest
           if($LASTEXITCODE){throw 'Release update failed'}
