@@ -837,3 +837,24 @@ footer {
 .file-picker{cursor:pointer;text-decoration:underline;text-underline-offset:3px;color:var(--muted)}
 
 .settings-appearance { border-top:0; }
+
+/* Stable layers animate only transform/opacity, with the toggle outside them. */
+.app-shell { position:relative; overflow:hidden; }
+.settings-toggle-row { flex:0 0 32px; display:flex; justify-content:center; align-items:center; }
+.settings-toggle { width:44px; height:28px; border-radius:14px; --wails-draggable:no-drag; }
+.settings-toggle svg { transition:transform 180ms ease; }
+.settings-toggle.is-open svg { transform:rotate(180deg); }
+.view-stack { flex:1; min-height:0; position:relative; overflow:hidden; }
+.view-stack > main { position:absolute; inset:0; background:var(--bg); overflow-y:auto; }
+.page-settings { z-index:2; }
+.view-enter-active, .view-leave-active { transition:transform 220ms cubic-bezier(.2,.7,.2,1),opacity 160ms ease; will-change:transform,opacity; }
+.view-leave-active { pointer-events:none; }
+.view-enter-from, .view-leave-to { opacity:0; }
+.page-settings.view-enter-from, .page-settings.view-leave-to { transform:translateY(-100%); }
+.page-settings .settings-section { padding:16px 0; }
+.page-settings .settings-appearance { padding-top:4px; }
+.page-settings .toggle-row { min-height:32px; }
+.about-connect .settings-links { margin-top:14px; }
+@media(prefers-reduced-motion:reduce) {
+ .view-enter-active,.view-leave-active,.settings-toggle svg { transition:none!important; }
+}

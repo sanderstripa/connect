@@ -173,7 +173,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
   const save = await page.getByRole('combobox', {name: 'Режим'}).boundingBox();
   expect(hint).not.toBeNull();expect(save).not.toBeNull();
   await page.setViewportSize({width: 410, height: 660});
-  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await page.getByRole("button", { name: "Закрыть настройки", exact: true }).click();
   await page.getByRole("button", { name: "Отключить VPN", exact: true }).click();
   await page.getByRole("button", { name: "Настройки", exact: true }).click();
   await assertFits(page);
@@ -199,7 +199,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await expect(page.getByRole("alert")).toContainText("Укажите домены");
   await page.getByLabel("Домены исключений").fill("hh.ru\navito.ru\nпример.рф");
   await expect.poll(()=>cfg.routing.customRules).toContain("DOMAIN-SUFFIX,hh.ru,DIRECT");
-  await expect(page.getByRole("status")).toHaveText("Настройки сохранены");
+  await expect(page.getByRole("status")).toHaveCount(0);
   expect(cfg.core.autoStart).toBe(true);
   expect(cfg.ui.launchAtLogin).toBe(true);
   expect(cfg.routing.customRules).toContain("DOMAIN-SUFFIX,hh.ru,DIRECT");
@@ -296,6 +296,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
 });
 
 async function assertFits(page: import("@playwright/test").Page) {
+  await expect(page.locator(".view-leave-active")).toHaveCount(0);
   await expect(page.locator("main")).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const metrics = await page.evaluate(() => {

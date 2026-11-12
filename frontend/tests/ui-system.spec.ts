@@ -20,13 +20,13 @@ test('Soulu colours and window controls retain settings-only preferences and key
  await page.route('**/wails/runtime',async route=>{const req=route.request().postDataJSON();let result:any=null;if(req.object===0){const method=ids[req.args.methodID];if(method==='GetConfig')result=cfg;if(method==='SaveConfig')Object.assign(cfg,req.args.args[0]);if(method==='GetState')result={running:false,traffic:{recentBandwidth:[]},kernel:{},recentLogs:[]}}await route.fulfill({contentType:'application/json',body:JSON.stringify(result)})});
  await page.goto('/');await expect(page.locator('.titlebar button')).toHaveCount(2);await expect(page.locator('.titlebar')).toHaveCSS('height','54px');
  await expect(page.locator('footer')).toHaveCount(0);await expect(page.locator('.titlebar')).toHaveCSS('border-bottom-width','0px');
- const gear=page.locator('.settings-icon svg'),settings=page.getByRole('button',{name:'Настройки',exact:true});
- await expect(gear).toHaveAttribute('viewBox','5 0 85 85');await expect(gear).toHaveAttribute('width','24');await expect(gear).toHaveAttribute('height','24');
- const original=fs.readFileSync('../docs/assets/CONNECT-settings-08.svg','utf8');
- await expect(gear.locator('path')).toHaveAttribute('d',original.match(/ d="([^"]+)"/)![1]);await expect(gear.locator('circle')).toHaveAttribute('r','6.578');
+ const settings=page.getByRole('button',{name:'Настройки',exact:true});
+ await expect(settings.locator('svg')).toHaveAttribute('width','20');
+ await expect(settings).toHaveAttribute('aria-expanded','false');
+ const rect=await settings.boundingBox();expect(Math.abs(rect!.x+rect!.width/2-205)).toBeLessThan(1);
  for(const theme of ['light','dark']){
   await page.locator('html').evaluate((e,t)=>e.setAttribute('data-theme',t),theme);
-  await expect(settings).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await settings.hover();await expect(settings).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(gear).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await expect(settings).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await page.locator('.window-minimize').hover();
   await expect(page.locator('.window-minimize')).toHaveCSS('background-color',theme==='dark'?'rgb(32, 33, 37)':'rgb(237, 237, 239)');
   await page.locator('.window-close').hover();
@@ -36,6 +36,9 @@ test('Soulu colours and window controls retain settings-only preferences and key
  await page.locator('html').evaluate(e=>e.setAttribute('data-theme','light'));
  await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect(page.locator('.titlebar button')).toHaveCount(2);
  await expect(page.getByRole('group',{name:'Язык интерфейса'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Закрыть настройки',exact:true})).toHaveAttribute('aria-expanded','true');
+ await expect(page.locator('.about-connect').getByRole('button',{name:'Обновление',exact:true})).toHaveCount(1);
+ await expect(page.locator('.about-connect').getByRole('button',{name:'Журнал подключения',exact:true})).toHaveCount(1);
  const primary=page.getByRole('button',{name:'Тёмная',exact:true}),mode=page.getByRole('combobox',{name:'Режим'});
  await expect(mode).toHaveCSS('font-size','13px');await expect(mode).toHaveCSS('border-radius','8px');
  expect(await page.locator('.switch').first().evaluate(e=>({w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))).toEqual({w:40,h:23});
@@ -44,5 +47,13 @@ test('Soulu colours and window controls retain settings-only preferences and key
   await page.getByRole('button',{name:button,exact:true}).click();await expect(page.locator('html')).toHaveCSS('background-color',bg);await expect(page.locator('html')).toHaveCSS('color',ink);
  }
  await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS'})).toHaveCount(0);await expect.poll(()=>cfg.ui.language).toBe('en');
+ await expect(page.getByRole('status')).toHaveCount(0);
+ for(let i=0;i<3;i++){
+  await page.getByRole('button',{name:'Close settings',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Settings',exact:true})).toHaveAttribute('aria-expanded','false');
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Close settings',exact:true})).toHaveAttribute('aria-expanded','true');
+ }
+ await expect(page.locator('.view-leave-active')).toHaveCount(0);
  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.getByRole('button',{name:'Dark',exact:true})).toHaveCSS('transition-duration','0s');
 });

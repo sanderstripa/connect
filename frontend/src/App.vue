@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
+  ChevronDown,
   Trash2,
   RefreshCw,
   Sun,
@@ -34,7 +35,6 @@ import { backendApi as api } from "./api";
 import type { AppConfig, RuntimeState } from "./types";
 import ModeSelect from "./ModeSelect.vue";
 import UpdatesPanel from "./UpdatesPanel.vue";
-import settingsIcon from "../../docs/assets/CONNECT-settings-08.svg?raw";
 const appVersion = ref("…");
 const hoveredWindowControl = ref("");
 function resetWindowControls() { hoveredWindowControl.value = ""; }
@@ -73,6 +73,7 @@ const english: Record<string,string> = {
   "Скрыть в трей": "Hide to tray",
   "Загрузка…": "Loading…",
   "Настройки": "Settings",
+  "Закрыть настройки": "Close settings",
   "Протокол": "Protocol",
   "Пожалуйста, подождите": "Please wait",
   "Соединение активно": "Connected",
@@ -149,6 +150,10 @@ async function toggleLanguage() {
     if (draft.value) draft.value.ui.language = c.ui.language;
   });
 }
+let messageTimer: ReturnType<typeof setTimeout> | undefined;
+let errorTimer: ReturnType<typeof setTimeout> | undefined;
+watch(message, value=>{clearTimeout(messageTimer);if(value)messageTimer=setTimeout(()=>{message.value="";},2200);});
+watch(error, value=>{clearTimeout(errorTimer);if(value)errorTimer=setTimeout(()=>{error.value="";},4500);});
 watch(language, value => { document.documentElement.lang = value; }, { immediate: true });
 const running = computed(() => !!state.value?.running);
 const healthy = computed(
@@ -254,6 +259,7 @@ async function setTheme(value: string) {
   });
 }
 watch(page, async (_page,previous) => {
+  message.value="";
   if(previous==='settings'&&settingsTimer){clearTimeout(settingsTimer);settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());}
   await nextTick();
   window.scrollTo(0, 0);
@@ -350,7 +356,7 @@ async function saveSettings() {
       await api.startProxy({ withTun: true });
       await reload();
     }
-    message.value = "Настройки сохранены";
+    // Autosave is intentionally silent.
   } catch(e) { error.value = errorMessage(e); }
 }
 function bytes(n = 0) {
@@ -407,6 +413,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("blur", resetWindowControls);
   window.removeEventListener("focus", resetWindowControls);
   clearInterval(timer);
+  clearTimeout(messageTimer);clearTimeout(errorTimer);
   media.removeEventListener("change", applyTheme);
 });
 </script>
@@ -423,17 +430,19 @@ onBeforeUnmount(() => {
       </div>
     </header>
     <div v-if="loading" class="loading"> {{ tr("Загрузка…") }} </div>
-    <main v-else :class="'page-' + page">
+    <template v-else>
+      <nav v-if="page === 'home' || page === 'settings'" class="settings-toggle-row" aria-label="Settings panel">
+        <button class="icon-button settings-toggle" :class="{ 'is-open': page === 'settings' }"
+          :aria-label="page === 'settings' ? tr('Закрыть настройки') : tr('Настройки')"
+          :aria-expanded="page === 'settings'" aria-controls="main-view"
+          @click="page === 'settings' ? page = 'home' : openSettings()">
+          <ChevronDown :size="20" :stroke-width="1.5" />
+        </button>
+      </nav>
+      <div class="view-stack">
+       <Transition name="view">
+        <main id="main-view" :key="page" :class="'page-' + page">
       <template v-if="page === 'home'">
-        <div class="eyebrow-row">
-          <button
-            class="icon-button"
-            :aria-label="tr('Настройки')"
-            @click="openSettings"
-          >
-            <span class="settings-icon" aria-hidden="true" v-html="settingsIcon" />
-          </button>
-        </div>
         <section class="connection">
           <div class="status">
             <span class="status-dot" :class="{ online: healthy }" />{{
@@ -493,11 +502,11 @@ onBeforeUnmount(() => {
         </div>
       </template>
       <template v-else>
-        <div class="page-heading">
-          <button class="icon-button" :aria-label="tr('Назад')" @click="page = page === 'updates' ? 'settings' : 'home'">
+        <div v-if="page !== 'settings'" class="page-heading">
+          <button class="icon-button" :aria-label="tr('Назад')" @click="page = page === 'updates' || page === 'logs' ? 'settings' : 'home'">
             <ArrowLeft :size="18" />
           </button>
-          <h1 v-if="page !== 'settings'">
+          <h1>
             {{
               page === "updates" ? (language === "en" ? "UPDATES" : "ОБНОВЛЕНИЕ")
                 : page === "servers"
@@ -562,15 +571,15 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <p v-if="running" class="hint reconnect-hint"> {{ tr("Настройки подключения применятся с переподключением.") }} </p>
+          <section class="settings-section about-connect">
+            <h2>{{ language === 'en' ? 'About Connect VPN' : 'О Connect VPN' }}</h2>
+            <p>{{ language === 'en' ? 'Version' : 'Версия' }} <span>{{ appVersion }}</span></p>
+            <p>{{ language === 'en' ? 'Developer' : 'Разработчик' }} <span>Sander Stripa</span></p>
           <div class="settings-links"><button class="text-row" @click="page = 'updates'"><RefreshCw :size="16" />{{ language === 'en' ? 'Updates' : 'Обновление' }}<ChevronRight :size="15" /></button><button class="text-row" :aria-label="tr('Журнал подключения')" @click="page = 'logs'">
             <ScrollText :size="16" /> {{ language === 'en' ? 'Log' : 'Журнал' }} <ChevronRight
               :size="15"
             />
           </button></div>
-          <section class="settings-section about-connect">
-            <h2>{{ language === 'en' ? 'About Connect VPN' : 'О Connect VPN' }}</h2>
-            <p>{{ language === 'en' ? 'Version' : 'Версия' }} <span>{{ appVersion }}</span></p>
-            <p>{{ language === 'en' ? 'Developer' : 'Разработчик' }} <span>Sander Stripa</span></p>
             <button class="connect-link" @click="openConnect">by connect.</button>
           </section>
         </template>
@@ -647,7 +656,10 @@ onBeforeUnmount(() => {
       >
         <span class="notice-symbol" aria-hidden="true">!</span><span>{{ error || state?.routeSetupError || state?.lastError }}</span>
       </div>
-    </main>
+        </main>
+       </Transition>
+      </div>
+    </template>
     <div v-if="message" class="toast" role="status">{{ tr(message) }}</div>
     <div
       v-if="importing"
