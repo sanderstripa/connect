@@ -138,6 +138,8 @@ const english: Record<string,string> = {
 };
 const tr = (value: string) => language.value === 'en' ? (english[value] || value) : value;
 async function toggleLanguage() {
+  if(page.value==='settings'&&draft.value){draft.value.ui.language=language.value==='ru'?'en':'ru';config.value!.ui.language=draft.value.ui.language;scheduleSettings();return;}
+
   await action(async () => {
     if (!config.value) return;
     const c = JSON.parse(JSON.stringify(config.value)) as AppConfig;
@@ -239,6 +241,8 @@ async function refresh(id: string) {
     });
 }
 async function setTheme(value: string) {
+  if(page.value==='settings'&&draft.value){draft.value.ui.theme=value;theme.value=value;applyTheme();scheduleSettings();return;}
+
   await action(async () => {
     if (!config.value) return;
     const c = JSON.parse(JSON.stringify(config.value)) as AppConfig;
@@ -256,7 +260,10 @@ watch(page, async () => {
 watch(domains, () => {
   error.value = "";
 });
+let settingsHydrating=false;
 function openSettings() {
+  settingsHydrating=true;
+  void nextTick(()=>{settingsHydrating=false;});
   message.value = "";
   error.value = "";
   const c = config.value;
@@ -270,8 +277,18 @@ function openSettings() {
     .join("\n");
   page.value = "settings";
 }
+let settingsQueue: Promise<void> = Promise.resolve();
+let settingsTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleSettings(delay = 0) {
+ if(settingsTimer) clearTimeout(settingsTimer);
+ settingsTimer=setTimeout(()=>{settingsQueue=settingsQueue.then(()=>saveSettings());},delay);
+}
+watch(()=>[draft.value?.ui.launchAtLogin,draft.value?.core.autoStart,split.value],(_next,previous)=>{
+ if(!settingsHydrating&&page.value==='settings'&&previous&&draft.value) scheduleSettings();
+});
+watch(domains,()=>{if(page.value==='settings'&&draft.value) scheduleSettings(450);});
 async function saveSettings() {
-  await action(async () => {
+  try {
     if (!draft.value) return;
     const clean = [
       ...new Set(
@@ -295,8 +312,11 @@ async function saveSettings() {
           }),
       ),
     ];
-    const c = JSON.parse(JSON.stringify(draft.value)) as AppConfig;
+    const c = JSON.parse(JSON.stringify(config.value)) as AppConfig;
+    c.ui.launchAtLogin = draft.value.ui.launchAtLogin;
+    c.core.autoStart = draft.value.core.autoStart;
     c.ui.theme = theme.value;
+    c.ui.language = draft.value.ui.language;
     c.tun.enabled = true;
     c.routing.proxyMode = split.value ? "pac" : "global";
     c.routing.ruleUrls = [];
@@ -328,8 +348,7 @@ async function saveSettings() {
       await reload();
     }
     message.value = "Настройки сохранены";
-    page.value = "home";
-  });
+  } catch(e) { error.value = errorMessage(e); }
 }
 function bytes(n = 0) {
   return n < 1024
@@ -475,11 +494,9 @@ onBeforeUnmount(() => {
           <button class="icon-button" :aria-label="tr('Назад')" @click="page = page === 'updates' ? 'settings' : 'home'">
             <ArrowLeft :size="18" />
           </button>
-          <h1>
+          <h1 v-if="page !== 'settings'">
             {{
-              page === "settings"
-                ? tr("НАСТРОЙКИ")
-                : page === "updates" ? (language === "en" ? "UPDATES" : "ОБНОВЛЕНИЕ")
+              page === "updates" ? (language === "en" ? "UPDATES" : "ОБНОВЛЕНИЕ")
                 : page === "servers"
                   ? tr("СОЕДИНЕНИЯ")
                   : tr("ЖУРНАЛ")
@@ -488,7 +505,7 @@ onBeforeUnmount(() => {
         </div>
         <UpdatesPanel v-if="page === 'updates'" :language="language" :running="running" />
         <template v-if="page === 'settings' && draft">
-          <section class="settings-section">
+          <section class="settings-section settings-appearance">
             <div class="appearance-heading"><h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>
               <div class="language-picker" role="group" :aria-label="language === 'ru' ? 'Язык интерфейса' : 'Interface language'">
                 <button v-for="code in ['ru','en']" :key="code" :aria-pressed="language === code" :disabled="busy" @click="language !== code && toggleLanguage()">{{code.toUpperCase()}}</button>
@@ -542,8 +559,7 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <p v-if="running" class="hint reconnect-hint"> {{ tr("Настройки подключения применятся с переподключением.") }} </p>
-          <button class="primary" :disabled="busy" @click="saveSettings"> {{ tr("Сохранить настройки") }} </button
-          ><div class="settings-links"><button class="text-row" @click="page = 'updates'"><RefreshCw :size="16" />{{ language === 'en' ? 'Updates' : 'Обновление' }}<ChevronRight :size="15" /></button><button class="text-row" :aria-label="tr('Журнал подключения')" @click="page = 'logs'">
+          <div class="settings-links"><button class="text-row" @click="page = 'updates'"><RefreshCw :size="16" />{{ language === 'en' ? 'Updates' : 'Обновление' }}<ChevronRight :size="15" /></button><button class="text-row" :aria-label="tr('Журнал подключения')" @click="page = 'logs'">
             <ScrollText :size="16" /> {{ language === 'en' ? 'Log' : 'Журнал' }} <ChevronRight
               :size="15"
             />

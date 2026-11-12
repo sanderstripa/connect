@@ -36,13 +36,13 @@ test('Soulu colours and window controls retain settings-only preferences and key
  await page.locator('html').evaluate(e=>e.setAttribute('data-theme','light'));
  await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect(page.locator('.titlebar button')).toHaveCount(2);
  await expect(page.getByRole('group',{name:'Язык интерфейса'})).toBeVisible();
- const primary=page.getByRole('button',{name:'Сохранить настройки',exact:true}),mode=page.getByRole('combobox',{name:'Режим'});
- await expect(primary).toHaveCSS('border-radius','8px');await expect(primary).toHaveCSS('min-height','36px');await expect(mode).toHaveCSS('font-size','13px');await expect(mode).toHaveCSS('border-radius','8px');
+ const primary=page.getByRole('button',{name:'Тёмная',exact:true}),mode=page.getByRole('combobox',{name:'Режим'});
+ await expect(mode).toHaveCSS('font-size','13px');await expect(mode).toHaveCSS('border-radius','8px');
  expect(await page.locator('.switch').first().evaluate(e=>({w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))).toEqual({w:40,h:23});
  await mode.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');await expect(mode).toBeFocused();await expect(mode).toHaveCSS('outline-width','2px');await page.keyboard.press('ArrowDown');await expect(page.getByRole('listbox')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('listbox')).toHaveCount(0);
  for(const [button,bg,ink,fill,inverse] of [['Светлая','rgb(255, 255, 255)','rgb(36, 38, 40)','rgb(36, 38, 40)','rgb(255, 255, 255)'],['Тёмная','rgb(8, 9, 11)','rgb(238, 238, 239)','rgb(238, 238, 239)','rgb(8, 9, 11)']]){
-  await page.getByRole('button',{name:button,exact:true}).click();await expect(page.locator('html')).toHaveCSS('background-color',bg);await expect(page.locator('html')).toHaveCSS('color',ink);await expect(primary).toHaveCSS('background-color',fill);await expect(primary).toHaveCSS('color',inverse);
+  await page.getByRole('button',{name:button,exact:true}).click();await expect(page.locator('html')).toHaveCSS('background-color',bg);await expect(page.locator('html')).toHaveCSS('color',ink);
  }
- await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS'})).toBeVisible();expect(cfg.ui.language).toBe('en');
- await page.emulateMedia({reducedMotion:'reduce'});await expect(page.getByRole('button',{name:'Save settings',exact:true})).toHaveCSS('transition-duration','0s');
+ await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS'})).toHaveCount(0);expect(cfg.ui.language).toBe('en');
+ await page.emulateMedia({reducedMotion:'reduce'});await expect(page.getByRole('button',{name:'Dark',exact:true})).toHaveCSS('transition-duration','0s');
 });

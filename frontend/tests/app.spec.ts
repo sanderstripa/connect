@@ -147,20 +147,19 @@ test("import, connection state, settings drafts, routing and themes", async ({
     page.getByRole("switch", { name: "VPN для всего устройства" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Сохранить настройки" }),
+    page.getByRole("combobox", { name: "Режим" }),
   ).toBeEnabled();
   await page.getByRole("combobox", { name: "Режим" }).click();
-  await page.getByRole("option", { name: "Все, кроме списка" }).click();
   calls.length = 0;
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
+  await page.getByRole("option", { name: "Все, кроме списка" }).click();
+  await expect.poll(()=>cfg.routing.proxyMode).toBe("pac");
   await expect(page.locator(".page-progress")).toHaveCount(0);
-  await expect(page.getByText("Соединение активно")).toBeVisible();
+  await expect.poll(()=>calls.filter((m)=>["StopProxy","SaveConfig","StartProxy"].includes(m))).toEqual(["StopProxy","SaveConfig","StartProxy"]);
   expect(
     calls.filter((m) => ["StopProxy", "SaveConfig", "StartProxy"].includes(m)),
   ).toEqual(["StopProxy", "SaveConfig", "StartProxy"]);
   expect(state.tunRunning).toBe(true);
   expect(cfg.routing.proxyMode).toBe("pac");
-  await page.getByRole("button", { name: "Настройки", exact: true }).click();
   await expect(page.getByLabel("Домены исключений")).toBeVisible();
   await page.setViewportSize({width: 328, height: 528});
   await expect(page.locator("footer")).toHaveCount(0);
@@ -171,8 +170,8 @@ test("import, connection state, settings drafts, routing and themes", async ({
 
   await assertFits(page);
   const hint = await page.locator('.reconnect-hint').boundingBox();
-  const save = await page.getByRole('button', {name: 'Сохранить настройки'}).boundingBox();
-  expect(save!.y - (hint!.y + hint!.height)).toBeGreaterThanOrEqual(14);
+  const save = await page.getByRole('combobox', {name: 'Режим'}).boundingBox();
+  expect(hint).not.toBeNull();expect(save).not.toBeNull();
   await page.setViewportSize({width: 410, height: 660});
   await page.getByRole("button", { name: "Назад", exact: true }).click();
   await page.getByRole("button", { name: "Отключить VPN", exact: true }).click();
@@ -184,7 +183,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
   await page.locator(".window-close").hover();
   await expect(page.locator(".window-close")).toHaveCSS("background-color", "rgb(84, 36, 47)");
 
-  expect(cfg.core.autoStart).toBe(false);
+  await expect.poll(()=>cfg.core.autoStart).toBe(true);
   await page.getByRole("combobox", { name: "Режим" }).click();
   await page.getByRole("option", { name: "Все, кроме списка" }).click();
   for (const size of [
@@ -197,10 +196,9 @@ test("import, connection state, settings drafts, routing and themes", async ({
   }
   await page.setViewportSize({ width: 410, height: 660 });
   await page.getByLabel("Домены исключений").fill("https://bad.example");
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
   await expect(page.getByRole("alert")).toContainText("Укажите домены");
   await page.getByLabel("Домены исключений").fill("hh.ru\navito.ru\nпример.рф");
-  await page.getByRole("button", { name: "Сохранить настройки" }).click();
+  await expect.poll(()=>cfg.routing.customRules).toContain("DOMAIN-SUFFIX,hh.ru,DIRECT");
   await expect(page.getByRole("status")).toHaveText("Настройки сохранены");
   expect(cfg.core.autoStart).toBe(true);
   expect(cfg.ui.launchAtLogin).toBe(true);
@@ -217,9 +215,9 @@ test("import, connection state, settings drafts, routing and themes", async ({
       fullPage: true,
       path: path.join(process.env.SUDOKU_PREVIEW_DIR, "sudoku-dark.png"),
     });
-    await page.getByRole("button", { name: "Настройки", exact: true }).click();
+    if(await page.getByRole("button",{name:"Настройки",exact:true}).count())await page.getByRole("button",{name:"Настройки",exact:true}).click();
     await expect(
-      page.getByRole("button", { name: "Сохранить настройки" }),
+      page.getByRole("combobox", { name: "Режим" }),
     ).toBeEnabled();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
@@ -228,7 +226,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
     });
     await page.getByRole("button", { name: "Светлая", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Сохранить настройки" }),
+      page.getByRole("combobox", { name: "Режим" }),
     ).toBeEnabled();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
@@ -244,7 +242,7 @@ test("import, connection state, settings drafts, routing and themes", async ({
     await page.getByRole("combobox", { name: "Режим" }).click();
     await expect(page.getByRole("listbox")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Сохранить настройки" }),
+      page.getByRole("combobox", { name: "Режим" }),
     ).toHaveCSS("opacity", "1");
     await expect
       .poll(() =>
@@ -342,5 +340,5 @@ test('settings language persists immediately without discarding unsaved routing'
  await page.getByRole('button',{name:'EN',exact:true}).click();await expect(page.getByRole('heading',{name:'SETTINGS',exact:true})).toBeVisible();await expect(page.getByLabel('Excluded domains')).toHaveValue('example.com');expect(cfg.ui.language).toBe('en');expect(cfg.routing.proxyMode).toBe('global');
  await page.getByRole('button',{name:'Save settings',exact:true}).click();expect(cfg.ui.language).toBe('en');expect(cfg.routing.customRules).toContain('example.com');
  await page.reload();await page.getByRole('button',{name:'Settings',exact:true}).click();await expect(page.getByRole('button',{name:'EN',exact:true})).toHaveAttribute('aria-pressed','true');await assertFits(page);
- await page.getByRole('button',{name:'RU',exact:true}).click();await expect(page.getByRole('heading',{name:'НАСТРОЙКИ',exact:true})).toBeVisible();expect(cfg.ui.language).toBe('ru');
+ await page.getByRole('button',{name:'RU',exact:true}).click();await expect(page.getByRole('heading',{name:'НАСТРОЙКИ',exact:true})).toHaveCount(0);expect(cfg.ui.language).toBe('ru');
 });

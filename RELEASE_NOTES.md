@@ -1,3 +1,1 @@
-# Connect 1.4.5
-
-Unified installer appearance: Screencast light palette and selected controls, Screenshot dark background, white dark-theme selection, centered caption feedback and underlined Back hover. Correct application and installer versions; canonical Release-x64 installer filename. Existing installation options and behavior retained.
+Connect 1.4.6: settings apply automatically, including routing reconnection; remove redundant settings title and separator. Chrome extension version matches the application: 1.4.6.
