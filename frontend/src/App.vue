@@ -439,9 +439,9 @@ onBeforeUnmount(() => {
           <ChevronDown :size="20" :stroke-width="1.5" />
         </button>
       </nav>
-      <div class="view-stack">
+      <div id="main-view" class="view-stack">
        <Transition name="view">
-        <main id="main-view" :key="page" :class="'page-' + page">
+        <main :key="page" :class="'page-' + page">
       <template v-if="page === 'home'">
         <section class="connection">
           <div class="status">
