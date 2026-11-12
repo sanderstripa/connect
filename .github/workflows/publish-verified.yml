@@ -1,0 +1,42 @@
+name: Publish verified Connect binaries
+on:
+  push:
+    branches: [main]
+    paths: [release-candidate.json]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: windows-2022
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote exact Windows-tested binaries
+        shell: pwsh
+        run: |
+          $c=Get-Content release-candidate.json -Raw | ConvertFrom-Json
+          if($c.version -notmatch '^\d+\.\d+\.\d+$' -or $c.commit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid candidate'}
+          $run=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($c.run)" | ConvertFrom-Json
+          if($run.conclusion -ne 'success' -or $run.head_sha -ne $c.commit){throw 'Candidate was not tested successfully'}
+          gh run download $c.run -n Connect-Windows-x64 -D verified
+          if($LASTEXITCODE){throw 'Artifact download failed'}
+          $meta=Get-Content verified/bin/Connect-Setup.exe.build.json -Raw | ConvertFrom-Json
+          if($meta.version -ne $c.version -or $meta.productCommit -ne $c.commit -or (Get-FileHash verified/bin/Connect-Setup.exe).Hash.ToLowerInvariant() -ne $meta.sha256){throw 'Artifact source/hash mismatch'}
+          $setup="Connect-$($c.version)-Release-x64.exe"
+          $zip="Connect-$($c.version)-Release-x64.zip"
+          Copy-Item verified/bin/Connect-Setup.exe $setup
+          Compress-Archive verified/bin/Connect.exe $zip
+          $files=@($setup,$zip,'verified/bin/Connect-Chrome.zip','verified/bin/Connect-AmneziaWG-windows-amd64.zip')
+          $files+=@(Get-ChildItem verified/bin/Connect-Sudoku-*-windows-amd64.zip | ForEach-Object{$_.FullName})
+          if($files.Count -ne 5){throw 'Unexpected component count'}
+          $sums=foreach($file in $files){"$((Get-FileHash $file).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"}
+          $sums | Set-Content SHA256SUMS.txt -Encoding ascii
+          $tag="v$($c.version)"
+          gh release upload $tag @files SHA256SUMS.txt --clobber
+          if($LASTEXITCODE){throw 'Verified asset upload failed'}
+          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/git/refs/tags/$tag" -f sha=$c.commit -F force=true
+          if($LASTEXITCODE){throw 'Verified tag update failed'}
+          gh release edit $tag --notes-file RELEASE_NOTES.md --latest
+          if($LASTEXITCODE){throw 'Release update failed'}
