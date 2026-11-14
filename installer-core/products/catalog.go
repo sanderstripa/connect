@@ -15,7 +15,7 @@ func Version(id string) string { return Configure(id, "", nil).Version }
 //go:embed *.json
 var catalog embed.FS
 
-//go:embed vpn.png
+//go:embed vpn-installer.png
 var vpnIcon []byte
 
 //go:embed vpn.ico

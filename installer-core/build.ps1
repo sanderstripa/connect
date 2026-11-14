@@ -41,7 +41,8 @@ try{
   if($env:GITHUB_ACTIONS -eq 'true'){$env:CONNECT_INSTALLER_CI_TEST='1'}
   if(!$SkipTests){Native $Go @('test','-v',"-ldflags=$metadata",'./core','./installprefs','./products',"./adapters/$Product")}
  }finally{$env:CONNECT_INSTALLER_CI_TEST=$previousCiTest}
- Native $Go @('run','./tools/resources',"products/$Product.ico","products/$Product.manifest","cmd/$Product/resources_windows_amd64.syso")
+ $resourceIcon=if($Product -eq 'vpn'){'products/vpn-installer.ico'}else{"products/$Product.ico"}
+ Native $Go @('run','./tools/resources',$resourceIcon,"products/$Product.manifest","cmd/$Product/resources_windows_amd64.syso")
  $flags="-w -s -H windowsgui $metadata"
  Native $Go @('build','-tags','production','-trimpath','-buildvcs=false',"-ldflags=$flags",'-o',$output,"./cmd/$Product")
  $coreCommit=(& git -C $PSScriptRoot rev-parse HEAD).Trim()

@@ -26,7 +26,7 @@ for(const app of ['connect']){
   for(const n of [512,1024])await out(`build/branding/icon-${n}.png`,await render(app,false,false,n));
   await out('build/branding/source/app-round.png',master);
   for(const state of ['off','on']){await out(`build/branding/source/tray-${state}.svg`,svg(app,state==='on',true));await out(`build/branding/source/tray-${state}.png`,await render(app,state==='on',true,1024));let tf=[];for(const n of sizes){let b=await render(app,state==='on',true,n);tf.push([n,b]);await out(`build/tray/${state}-${n}.png`,b)}await out(`build/tray/tray-${state}.ico`,ico(tf))}
-  for(const p of ['build/windows/icon.ico','build/windows/installer.ico','installer-core/products/vpn.ico'])await out(p,icon);
+  for(const p of ['build/windows/icon.ico','installer-core/products/vpn.ico'])await out(p,icon);
   for(const [p,n] of [['build/appicon.png',1024],['cmd/installer/web/assets/icon.png',256],['frontend/src/assets/images/logo-universal.png',512],['extension/assets/icon.png',128],['installer-core/products/vpn.png',256],['installer-core/core/web/assets/icon.png',256]])await out(p,await render(app,false,false,n));
   for(const n of [16,24,32,48,64,128])await out(`extension/assets/icon-${n}.png`,await render(app,false,false,n));
   for(const p of ['build/tray/off-light.png','build/tray/off-dark.png'])await out(p,await render(app,false,true,32));await out('build/tray/on.png',await render(app,true,true,32));

@@ -1,3 +1,3 @@
-Connect 1.4.8
+Connect 1.4.9
 
-Replace the square Connect icon with the approved circular artwork in the app, installer, Windows shortcuts, macOS/Linux resources, and Chrome extension. Preserve the connected-state color and transparent tray glyphs. Application and extension version: 1.4.8. No connection or interface behavior changes.
+Update only the installer icon to the approved pearl planet artwork. Keep application, shortcut, tray and Chrome extension artwork unchanged. Separate installer resources from the shortcut ICO and verify both compiled Windows executables against their respective icons. No connection or interface behavior changes.

@@ -2,13 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=path.resolve(import.meta.dirname,'..');
-const ico=fs.readFileSync(path.join(root,'build/windows/icon.ico'));
+for(const [file,iconPath] of [['Connect.exe','build/windows/icon.ico'],['Connect-Setup.exe','build/windows/installer.ico']]){
+const ico=fs.readFileSync(path.join(root,iconPath));
 const expected=new Map();
 for(let i=0;i<ico.readUInt16LE(4);i++){
  const p=6+16*i;
  expected.set(ico[p]||256,ico.subarray(ico.readUInt32LE(p+12),ico.readUInt32LE(p+12)+ico.readUInt32LE(p+8)));
 }
-for(const file of ['Connect.exe','Connect-Setup.exe']){
+
  const b=fs.readFileSync(path.join(root,'build/bin',file)),pe=b.readUInt32LE(0x3c);
  assert.equal(b.toString('ascii',pe,pe+4),'PE\0\0');
  const optional=pe+24,magic=b.readUInt16LE(optional),sectionCount=b.readUInt16LE(pe+6),sections=optional+b.readUInt16LE(pe+20);

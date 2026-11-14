@@ -8,7 +8,11 @@ png(read('build/branding/source/tray-on.png'),1024);
 for(const [file,size]of [['build/appicon.png',1024],['cmd/installer/web/assets/icon.png',256],['frontend/src/assets/images/logo-universal.png',512],['extension/assets/icon.png',128]])assert.deepEqual(read(file),read(`build/branding/icon-${size}.png`));
 const ico=read('build/windows/icon.ico');assert.equal(ico.readUInt16LE(2),1);assert.equal(ico.readUInt16LE(4),12);for(let i=0;i<ico.readUInt16LE(4);i++){const p=6+16*i,size=ico[p]||256,offset=ico.readUInt32LE(p+12),length=ico.readUInt32LE(p+8);const frame=ico.subarray(offset,offset+length);png(frame,size);assert.deepEqual(frame,read(`build/branding/icon-${size}.png`))}
 assert.deepEqual(read('installer-core/products/vpn.ico'),ico);
-assert.deepEqual(read('build/windows/installer.ico'),ico);
+const setupICO=read('build/windows/installer.ico');
+assert.deepEqual(setupICO,read('installer-core/products/vpn-installer.ico'));
+assert.notDeepEqual(setupICO,ico,'Installer artwork must stay separate from app/shortcut artwork');
+assert.equal(setupICO.readUInt16LE(2),1);assert.equal(setupICO.readUInt16LE(4),12);
+for(let i=0;i<setupICO.readUInt16LE(4);i++){const p=6+16*i,size=setupICO[p]||256,offset=setupICO.readUInt32LE(p+12),length=setupICO.readUInt32LE(p+8);const frame=setupICO.subarray(offset,offset+length);png(frame,size);if(size===256)assert.deepEqual(frame,read('installer-core/products/vpn-installer.png'))}
 assert.deepEqual(read('installer-core/products/vpn.png'),read('build/branding/icon-256.png'));
 for(const state of ['off','on']){
  const b=read(`build/tray/tray-${state}.ico`),sizes=[16,20,24,28,32,36,40,48,64,96,128,256];
