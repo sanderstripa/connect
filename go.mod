@@ -4,7 +4,7 @@ go 1.27.2
 
 require (
 	github.com/SUDOKU-ASCII/sudoku v0.5.2-1
-	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20261116
 	github.com/shirou/gopsutil/v4 v4.26.2
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.74
 	golang.org/x/net v0.61.0

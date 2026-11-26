@@ -19,7 +19,7 @@ import (
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 )
 
-const buildVersion = "connect-0.1.8+awg-3.1.20260828"
+const buildVersion = "connect-0.1.8+awg-3.1.20261116"
 
 func main() {
 	file := flag.String("config", "", "Connect AmneziaWG JSON configuration")

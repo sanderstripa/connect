@@ -1,46 +1,84 @@
 <script setup lang="ts">
-import {computed,onMounted,ref} from 'vue';
+import {computed,ref,watch} from 'vue';
 import {Call} from '@wailsio/runtime';
 type Release={version:string;prerelease:boolean;published:string};
 type Component={id:string;installed:string;build?:string;previous:string;releases:Release[];error:string;source:string};
-const props=defineProps<{language:string;running:boolean}>();
+const props=defineProps<{language:string;running:boolean;active:boolean}>();
 const en=computed(()=>props.language==='en');
 const text=(ru:string,eng:string)=>en.value?eng:ru;
 const ids=['app','xray','geo','sudoku','amneziawg'];
 const items=ref<Record<string,Component>>({}),selected=ref<Record<string,string>>({}),working=ref(''),notice=ref(''),problem=ref('');
-const previews=ref(localStorage.getItem('connect-update-preview')!=='false');
+const previews=ref(localStorage.getItem('connect-update-preview')==='true');
 const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',amneziawg:'AmneziaWG'}[id]||id);
 const sameVersion=(id:string)=>!!selected.value[id]&&selected.value[id].replace(/^v/,'')===items.value[id]?.installed.replace(/^v/,'');
 const call=(method:string,...args:unknown[])=>Call.ByName('main.App.'+method,...args);
-async function status(id:string,check:boolean){const item=await call('GetUpdateStatus',id,check,previews.value) as Component;items.value[id]=item;selected.value[id]=item.releases?.[0]?.version||'';}
+const latestMatches = (id: string) => {
+  const item = items.value[id];
+  const latest = item?.releases?.[0];
+  return latest && latest.version.replace(/^v/, '') === item.installed.replace(/^v/, '');
+};
+const catalogLifetime = 60_000;
+const checkedAt: Record<string, number> = {};
+async function status(id: string, check: boolean) {
+  const item = await call('GetUpdateStatus', id, check, previews.value) as Component;
+  items.value[id] = item;
+  selected.value[id] = item.releases?.[0]?.version || '';
+  if (check && !item.error) checkedAt[id] = Date.now();
+  if (item.error) delete checkedAt[id];
+}
 async function perform(key:string,fn:()=>Promise<unknown>){if(working.value)return;working.value=key;problem.value='';notice.value='';try{await fn()}catch(e){problem.value=e instanceof Error?e.message:String(e)}finally{working.value=''}}
-async function check(id:string){await perform(id,()=>status(id,true))}
-async function checkAll(){await perform('all',async()=>{for(const id of ids)await status(id,true)})}
-function previewChanged(){localStorage.setItem('connect-update-preview',String(previews.value));for(const item of Object.values(items.value))item.releases=[];selected.value={};}
+async function checkStatus(id: string) {
+  try {
+    if (!items.value[id]) await status(id, false);
+    await status(id, true);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const previous = items.value[id] ?? {id, installed:'', previous:'', source:''};
+    items.value[id] = {...previous, releases:[], error:message};
+    selected.value[id] = '';
+    delete checkedAt[id];
+  }
+}
+async function check(id:string){await perform(id,()=>checkStatus(id))}
+async function checkAll(force = true) {
+  const pending = ids.filter(id => force || Date.now() - (checkedAt[id] ?? 0) >= catalogLifetime);
+  if (pending.length) await perform('all', () => Promise.all(pending.map(checkStatus)));
+}
+function previewChanged() {
+  localStorage.setItem('connect-update-preview',String(previews.value));
+  for (const id of ids) delete checkedAt[id];
+  for (const item of Object.values(items.value)) item.releases = [];
+  selected.value = {};
+  void checkAll();
+}
 const previousApp=computed(()=>{const c=items.value.app;if(c?.previous)return c.previous;if(!c?.releases)return '';const current=c.installed.replace(/^v/,'');return c.releases.find(r=>r.version.replace(/^v/,'')!==current&&compareVersion(r.version,c.installed)<0)?.version||''});
 function compareVersion(a:string,b:string){const x=a.replace(/^v/,'').split(/[.+-]/).map(Number),y=b.replace(/^v/,'').split(/[.+-]/).map(Number);for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0;}
 async function install(id:string,version:string){
  if(!version)return;
- await perform(id,async()=>{await call('UpdateComponent',id,version);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}await status(id,false);notice.value=text('Установлено. Переподключите VPN, чтобы использовать новую версию.','Installed. Reconnect VPN to use the new version.')});
+ await perform(id,async()=>{await call('UpdateComponent',id,version);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}delete checkedAt[id];await checkStatus(id);notice.value=text('Установлено. Переподключите VPN, чтобы использовать новую версию.','Installed. Reconnect VPN to use the new version.')});
 }
 async function rollback(id:string){
  if(id==='app'&&!items.value.app?.previous){await install(id,previousApp.value);return}
  const version=items.value[id]?.previous;if(!version)return;
- await perform(id,async()=>{await call('RollbackComponent',id);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}await status(id,false);notice.value=text('Предыдущая версия восстановлена. Переподключите VPN.','Previous version restored. Reconnect VPN.')});
+ await perform(id,async()=>{await call('RollbackComponent',id);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}delete checkedAt[id];await checkStatus(id);notice.value=text('Предыдущая версия восстановлена. Переподключите VPN.','Previous version restored. Reconnect VPN.')});
 }
-onMounted(()=>perform('loading',async()=>{for(const id of ids)await status(id,false)}));
+watch(() => props.active, active => { if (active) void checkAll(false); }, { immediate: true });
 </script>
 <template>
  <section class="updates-panel">
  <div v-if="working" class="ui-progress" role="progressbar" :aria-label="text('Обработка…','Working…')"></div>
   <div class="updates-intro"><p class="hint">{{text('Установленные версии и доступные выпуски. Ядра общие для приложения и расширения.','Installed versions and available releases. Components are shared by the app and extension.')}}</p>
   <label class="toggle-row">{{text('Предварительные выпуски','Pre-release versions')}}<input type="checkbox" role="switch" v-model="previews" :disabled="!!working" @change="previewChanged"><span class="switch"/></label>
-  <button class="text-row" :disabled="!!working" @click="checkAll">{{working==='all'?text('Проверка…','Checking…'):text('Проверить всё','Check all')}}</button></div>
+  <button class="text-row" :disabled="!!working" @click="checkAll()">{{working==='all'?text('Проверка…','Checking…'):text('Проверить всё','Check all')}}</button></div>
   <article v-for="id in ids" :key="id" class="update-card" :aria-label="name(id)">
    <div class="update-heading"><h2>{{name(id)}}</h2><button :disabled="!!working" @click="check(id)">{{working===id?text('Подождите…','Please wait…'):text('Проверить','Check')}}</button></div>
-   <p class="update-installed">{{text('Установлено','Installed')}} <strong>{{items[id]?.installed||text('Не установлено','Not installed')}}</strong></p>
+   <p class="update-installed">{{text('Установлено','Installed')}} <strong>{{items[id]?.installed || (items[id] ? text('Не определено','Unavailable') : '…')}}</strong></p>
    <p v-if="items[id]?.build" class="update-source">{{items[id].build}}</p>
    <p v-if="items[id]?.source" class="update-source"><a :href="'https://github.com/'+items[id].source" target="_blank" rel="noopener noreferrer">{{text('Источник обновлений','Update source')}}</a></p>
+   <p v-if="items[id]?.releases?.[0]" class="update-source">
+    {{text('Последняя доступная версия','Latest available version')}} {{items[id].releases[0].version}}
+    <span v-if="latestMatches(id)"> · {{text('Уже установлена','Already installed')}}</span>
+   </p>
    <label v-if="items[id]?.releases?.length" class="release-label">{{text('Доступные версии','Available versions')}}
     <span class="ui-select-field"><select class="ui-select" v-model="selected[id]" :disabled="!!working" :aria-label="name(id)+' '+text('версия','version')"><option v-for="release in items[id].releases" :key="release.version" :value="release.version">{{release.version}}{{release.prerelease?text(' · предварительная',' · pre-release'):''}}</option></select><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
    </label>

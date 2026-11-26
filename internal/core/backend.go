@@ -651,7 +651,7 @@ func (b *Backend) StartProxy(req StartRequest) error {
 		routeAlreadySetup := false
 		var preRouteCtx *routeContext
 		if runtime.GOOS == "windows" {
-			// Ensure Windows DLL dependencies (wintun.dll/msys-2.0.dll) can be resolved reliably.
+			// Ensure Windows DLL dependencies can be resolved reliably.
 			hevWorkDir = filepath.Dir(hevBin)
 		}
 

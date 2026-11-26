@@ -15,7 +15,20 @@ $connectAdapterVersion=(Get-Content (Join-Path $connectRoot 'frontend/package.js
 $connectManifest['sudoku.exe']=@{version=($connectSudokuVersion+'+connect.'+$connectAdapterVersion);sha256=(Get-FileHash (Join-Path $connectBin 'sudoku.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
 $connectAWG=& (Join-Path $connectBin 'awg-client.exe') -version
 if($LASTEXITCODE -ne 0 -or -not $connectAWG){throw 'Cannot identify AmneziaWG version'}
-$connectManifest['awg-client.exe']=@{version='v0.1.8';build=$connectAWG;sha256=(Get-FileHash (Join-Path $connectBin 'awg-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$connectManifest['awg-client.exe']=@{version=('v'+$connectAdapterVersion);build=$connectAWG;sha256=(Get-FileHash (Join-Path $connectBin 'awg-client.exe') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$geoVersionFile=Join-Path $connectBin 'geo-version.txt'
+$geoVersion=(Get-Content -LiteralPath $geoVersionFile -Raw).Trim()
+if($geoVersion -notmatch '^\d{12}$'){throw 'Cannot identify GeoIP / GeoSite version'}
+foreach($name in @('geoip.dat','geosite.dat')) {
+ $digest=(Get-FileHash -LiteralPath (Join-Path $connectBin $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+ $connectManifest[$name]=@{version=$geoVersion;sha256=$digest}
+}
+$hevVersion=(Get-Content -LiteralPath (Join-Path $connectBin 'hev-version.txt') -Raw).Trim()
+if($hevVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Cannot identify HEV version'}
+foreach($name in @('hev-socks5-tunnel.exe','wintun.dll')) {
+ $digest=(Get-FileHash -LiteralPath (Join-Path $connectBin $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+ $connectManifest[$name]=@{version=$hevVersion;sha256=$digest}
+}
 $connectManifest | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $connectBin 'components.json') -Encoding utf8
 New-Item -ItemType Directory -Force (Join-Path $connectRoot 'build/bin') | Out-Null
 

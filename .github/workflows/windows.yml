@@ -27,6 +27,35 @@ jobs:
       - name: Build Windows app and test core
         shell: pwsh
         run: ./scripts/build-windows.ps1
+      - name: Compare packaged components with stable upstream releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $manifest = Get-Content runtime/bin/windows-amd64/components.json -Raw | ConvertFrom-Json
+          $repos = [ordered]@{
+            'XTLS/Xray-core' = $manifest.'xray.exe'.version
+            'SUDOKU-ASCII/sudoku' = ($manifest.'sudoku.exe'.version -split '\+')[0]
+            'Loyalsoldier/v2ray-rules-dat' = $manifest.'geoip.dat'.version
+            'heiher/hev-socks5-tunnel' = $manifest.'hev-socks5-tunnel.exe'.version
+          }
+          foreach ($repo in $repos.Keys) {
+            $latest = gh api "repos/$repo/releases/latest" --jq .tag_name
+            if ($LASTEXITCODE) { throw "Cannot check stable releases for $repo" }
+            $pinned = $repos[$repo]
+            if ($latest -ne $pinned) {
+              Write-Warning "$repo uses pinned $pinned. Stable $latest requires a separate compatibility check before inclusion."
+            } else {
+              Write-Host "$repo uses stable $pinned"
+            }
+          }
+          $awg = 'github.com/amnezia-vpn/amneziawg-go/v3'
+          $pinned = go list -m -f '{{.Version}}' $awg
+          if ($LASTEXITCODE) { throw 'Cannot read the pinned AmneziaWG Go version' }
+          $latest = go list -m -f '{{.Version}}' "$awg@latest"
+          if ($LASTEXITCODE) { throw 'Cannot check AmneziaWG Go versions' }
+          if ($latest -ne $pinned) { Write-Warning "AmneziaWG Go uses pinned $pinned. Stable $latest requires rebuilding and testing awg-client." }
+          else { Write-Host "AmneziaWG Go uses stable $pinned" }
       - name: Test native helper and extension lifecycle
         shell: pwsh
         run: |

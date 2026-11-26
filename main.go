@@ -203,7 +203,7 @@ func main() {
 			return
 		}
 		event.Cancel()
-		mainWindow.Hide()
+		app.Event.Emit("main:hide-to-tray")
 	})
 	configureApplicationMenu(app, mainWindow)
 

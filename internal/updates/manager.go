@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-const AppVersion = "1.4.9"
+const AppVersion = "1.4.10"
 
 var operations sync.Mutex
 
@@ -107,7 +107,9 @@ func sudokuPackageVersion(name string) string {
 	return v
 }
 func wantedAsset(id, name string) bool {
-	if id == "app" { return name == "Connect-Setup.exe" || regexp.MustCompile(`^Connect-[0-9]+\.[0-9]+\.[0-9]+-Release-x64\.exe$`).MatchString(name) }
+	if id == "app" {
+		return name == "Connect-Setup.exe" || regexp.MustCompile(`^Connect-[0-9]+\.[0-9]+\.[0-9]+-Release-x64\.exe$`).MatchString(name)
+	}
 	if id == "sudoku" {
 		return sudokuPackageVersion(name) != ""
 	}
@@ -210,12 +212,47 @@ func (m *Manager) get(ctx context.Context, raw string, limit int64) ([]byte, err
 	}
 	return b, nil
 }
+
+type catalogRequest struct {
+	done chan struct{}
+	data []byte
+	err  error
+}
+
+var pendingCatalogs = struct {
+	sync.Mutex
+	requests map[string]*catalogRequest
+}{requests: make(map[string]*catalogRequest)}
+
+func (m *Manager) fetchCatalog(ctx context.Context, endpoint string) ([]byte, error) {
+	pendingCatalogs.Lock()
+	if pending := pendingCatalogs.requests[endpoint]; pending != nil {
+		pendingCatalogs.Unlock()
+		select {
+		case <-pending.done:
+			return pending.data, pending.err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	pending := &catalogRequest{done: make(chan struct{})}
+	pendingCatalogs.requests[endpoint] = pending
+	pendingCatalogs.Unlock()
+
+	pending.data, pending.err = m.get(ctx, endpoint, 8<<20)
+	pendingCatalogs.Lock()
+	delete(pendingCatalogs.requests, endpoint)
+	close(pending.done)
+	pendingCatalogs.Unlock()
+	return pending.data, pending.err
+}
+
 func (m *Manager) catalog(ctx context.Context, id string, preview bool) ([]Release, error) {
 	s, ok := sources[id]
 	if !ok {
 		return nil, errors.New("unknown component")
 	}
-	data, e := m.get(ctx, m.api+"/repos/"+s.repo+"/releases?per_page=30", 8<<20)
+	data, e := m.fetchCatalog(ctx, m.api+"/repos/"+s.repo+"/releases?per_page=30")
 	if e != nil {
 		return nil, e
 	}

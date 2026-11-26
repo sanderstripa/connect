@@ -38,15 +38,19 @@ import UpdatesPanel from "./UpdatesPanel.vue";
 const appVersion = ref("…");
 const hoveredWindowControl = ref("");
 function resetWindowControls() { hoveredWindowControl.value = ""; }
-function hideToTray() {
+async function hideToTray() {
   resetWindowControls();
-  void Window.Hide();
+  await flushSettings();
+  page.value = "home";
+  await nextTick();
+  await Window.Hide();
 }
 const openConnect = () => Browser.OpenURL("https://connect.sanderstripa.com/");
 const draft = ref<AppConfig>();
 const config = ref<AppConfig>(),
   state = ref<RuntimeState>();
 const page = ref<"home" | "settings" | "servers" | "logs" | "updates">("home");
+const removeTrayHide = Events.On("main:hide-to-tray", hideToTray);
 const removeNavigation = Events.On("main:navigate", async (event) => {
   await reload();
   if (event.data === "settings") openSettings();
@@ -269,8 +273,7 @@ watch(domains, () => {
 });
 let settingsHydrating=false;
 async function openSettings() {
-  if(settingsTimer){clearTimeout(settingsTimer);settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());}
-  await settingsQueue;
+  await flushSettings();
   settingsHydrating=true;
   void nextTick(()=>{settingsHydrating=false;});
   message.value = "";
@@ -288,6 +291,14 @@ async function openSettings() {
 }
 let settingsQueue: Promise<void> = Promise.resolve();
 let settingsTimer: ReturnType<typeof setTimeout> | undefined;
+async function flushSettings() {
+  if (settingsTimer) {
+    clearTimeout(settingsTimer);
+    settingsTimer = undefined;
+    settingsQueue = settingsQueue.then(() => saveSettings());
+  }
+  await settingsQueue;
+}
 function scheduleSettings(delay = 0) {
  if(settingsTimer) clearTimeout(settingsTimer);
  settingsTimer=setTimeout(()=>{settingsTimer=undefined;settingsQueue=settingsQueue.then(()=>saveSettings());},delay);
@@ -410,6 +421,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   removeNavigation();
+  removeTrayHide();
   window.removeEventListener("blur", resetWindowControls);
   window.removeEventListener("focus", resetWindowControls);
   clearInterval(timer);
@@ -442,6 +454,7 @@ onBeforeUnmount(() => {
       <div id="main-view" class="view-stack">
        <Transition name="view">
         <main :key="page" :class="'page-' + page">
+      <UpdatesPanel v-show="page === 'updates'" :active="page === 'updates'" :language="language" :running="running" />
       <template v-if="page === 'home'">
         <section class="connection">
           <div class="status">
@@ -515,7 +528,6 @@ onBeforeUnmount(() => {
             }}
           </h1>
         </div>
-        <UpdatesPanel v-if="page === 'updates'" :language="language" :running="running" />
         <template v-if="page === 'settings' && draft">
           <section class="settings-section settings-appearance">
             <div class="appearance-heading"><h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>

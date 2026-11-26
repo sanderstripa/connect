@@ -13,8 +13,8 @@ github.com/SUDOKU-ASCII/sudoku v0.5.2-1 h1:9kZQCcx53vpuNVbyZCbY0tyUPWmJmwMFWE8Qk
 github.com/SUDOKU-ASCII/sudoku v0.5.2-1/go.mod h1:Eqbi4S5FRZUMyW2WDB6HdnztknFC/H/52a1ymt266ww=
 github.com/adrg/xdg v0.5.3 h1:xRnxJXne7+oWDatRhR1JLnvuccuIeCoBu2rtuLqQB78=
 github.com/adrg/xdg v0.5.3/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
-github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828 h1:D8d8gGvwXcTxUIsE4z6F6vjy4/VZddu95vMNtOygh1c=
-github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828/go.mod h1:YoPc6qcOZqD7TXZ1xpedD8Sx3aSKsxN05ZqEFmXDNHk=
+github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20261116 h1:/LZYudfChLgd1qmfKR9gaNg1z4xBW9hyS+Ij0MJNVzo=
+github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20261116/go.mod h1:YoPc6qcOZqD7TXZ1xpedD8Sx3aSKsxN05ZqEFmXDNHk=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=

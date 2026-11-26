@@ -2,6 +2,7 @@ package core
 
 import (
 	"crypto/sha256"
+	"debug/pe"
 	"errors"
 	"fmt"
 	"io"
@@ -256,7 +257,18 @@ func missingHevRuntimeDeps(hevBin string) []string {
 	if strings.TrimSpace(hevDir) == "" {
 		return []string{"wintun.dll", "msys-2.0.dll"}
 	}
-	deps := []string{"wintun.dll", "msys-2.0.dll"}
+	deps := []string{"wintun.dll"}
+	// Older HEV distributions also have a dynamic MSYS2 dependency.
+	if binary, err := pe.Open(hevBin); err == nil {
+		libraries, _ := binary.ImportedLibraries()
+		_ = binary.Close()
+		for _, library := range libraries {
+			if strings.EqualFold(library, "msys-2.0.dll") {
+				deps = append(deps, "msys-2.0.dll")
+				break
+			}
+		}
+	}
 	missing := make([]string, 0, len(deps))
 	for _, dep := range deps {
 		if fileMissing(filepath.Join(hevDir, dep)) {
@@ -356,7 +368,6 @@ func copyFileAtomic(srcPath, dstPath string, mode os.FileMode) error {
 	if mode != 0 {
 		_ = os.Chmod(tmpPath, mode)
 	}
-	_ = os.Remove(dstPath)
 	if err := os.Rename(tmpPath, dstPath); err != nil {
 		cleanup()
 		return err
@@ -389,7 +400,6 @@ func writeBytesAtomic(content []byte, dstPath string, mode os.FileMode) error {
 	if mode != 0 {
 		_ = os.Chmod(tmpPath, mode)
 	}
-	_ = os.Remove(dstPath)
 	if err := os.Rename(tmpPath, dstPath); err != nil {
 		cleanup()
 		return err

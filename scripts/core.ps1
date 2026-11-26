@@ -127,10 +127,10 @@ Get-ChildItem -Path $runtimeBinRoot -Directory -ErrorAction SilentlyContinue |
 #
 if ($What -eq "all" -or $What -eq "hev") {
   $hevVersion = $env:HEV_VERSION
-  if (-not $hevVersion) { $hevVersion = "2.17.1" }
+  if (-not $hevVersion) { $hevVersion = "2.20.0" }
 
   if ($goos -eq "windows" -and $goarch -eq "amd64") {
-    $asset = "hev-socks5-tunnel-win64.zip"
+    $asset = if ($hevVersion -eq "2.17.1") { "hev-socks5-tunnel-win64.zip" } else { "hev-socks5-tunnel-win-x64.zip" }
   } else {
     throw "Unsupported platform for scripts/core.ps1: ${goos}/${goarch} (use scripts/fetch_hev_release.sh on non-Windows hosts)"
   }
@@ -140,6 +140,9 @@ if ($What -eq "all" -or $What -eq "hev") {
   try {
     $zipPath = Join-Path $hevTmp $asset
     Invoke-WebRequest -Uri $hevUrl -OutFile $zipPath | Out-Null
+    if ($hevVersion -eq "2.20.0" -and (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash -ne "34fb2bef8000c2c6f948694caeaaf90ee0c307a124e8e436485953804b06c99d") {
+      throw "HEV archive checksum mismatch"
+    }
     Expand-Archive -Path $zipPath -DestinationPath $hevTmp -Force
     $srcDir = Join-Path $hevTmp "hev-socks5-tunnel"
     if (-not (Test-Path -LiteralPath $srcDir)) {
@@ -150,12 +153,15 @@ if ($What -eq "all" -or $What -eq "hev") {
     Remove-BuildDirectory -Path $hevTmp -ErrorAction SilentlyContinue
   }
 
-  foreach ($dep in @("hev-socks5-tunnel.exe", "wintun.dll", "msys-2.0.dll")) {
+  $hevFiles = @("hev-socks5-tunnel.exe", "wintun.dll")
+  if ($hevVersion -eq "2.17.1") { $hevFiles += "msys-2.0.dll" }
+  foreach ($dep in $hevFiles) {
     $p = Join-Path $outDir $dep
     if (-not (Test-Path -LiteralPath $p)) {
       throw "Missing HEV dependency after extraction: $p"
     }
   }
+  Set-Content -LiteralPath (Join-Path $outDir 'hev-version.txt') -Value $hevVersion -Encoding ascii
 }
 
 #

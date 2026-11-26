@@ -27,6 +27,10 @@ func (b *Backend) updateManagerLocked() (*updates.Manager, error) {
 	if exe, e := os.Executable(); e == nil {
 		base["app"] = updates.Baseline{Version: updates.AppVersion, Executable: exe, Files: map[string]string{"Connect-Setup.exe": filepath.Join(filepath.Dir(exe), "Uninstall.exe")}}
 	}
+	var runtimeStamps map[string]componentStamp
+	if data, err := os.ReadFile(filepath.Join(dir, "components.json")); err == nil {
+		_ = json.Unmarshal(data, &runtimeStamps)
+	}
 	for id, name := range map[string]string{"sudoku": "sudoku.exe", "xray": "xray.exe", "amneziawg": "awg-client.exe"} {
 		file := filepath.Join(dir, name)
 		if id == "sudoku" {
@@ -55,6 +59,11 @@ func (b *Backend) updateManagerLocked() (*updates.Manager, error) {
 		if site, e := fileSHA256(base["geo"].Files["geosite.dat"]); e == nil {
 			geo := base["geo"]
 			geo.Version = "SHA256 " + ip[:8] + " / " + site[:8]
+			ipStamp, siteStamp := runtimeStamps["geoip.dat"], runtimeStamps["geosite.dat"]
+			if ipStamp.Version != "" && ipStamp.Version == siteStamp.Version &&
+				strings.EqualFold(ip, ipStamp.SHA256) && strings.EqualFold(site, siteStamp.SHA256) {
+				geo.Version = ipStamp.Version
+			}
 			base["geo"] = geo
 		}
 	}
