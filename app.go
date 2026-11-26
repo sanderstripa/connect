@@ -149,6 +149,16 @@ func (a *App) SaveConfig(cfg core.AppConfig) error {
 	return a.backend.SaveConfig(cfg)
 }
 
+func (a *App) SaveConfigForNextConnection(cfg core.AppConfig) error {
+	if a.remote != nil {
+		return a.remote.call("SaveConfigForNextConnection", []any{cfg}, nil)
+	}
+	if a.backend == nil {
+		return nil
+	}
+	return a.backend.SaveConfigForNextConnection(cfg)
+}
+
 func (a *App) SetRoutingMode(mode string) error {
 	if a.remote != nil {
 		return a.remote.call("SetRoutingMode", []any{mode}, nil)

@@ -17,6 +17,14 @@ func (b *Backend) GetConfig() AppConfig {
 }
 
 func (b *Backend) SaveConfig(next AppConfig) error {
+	return b.saveConfig(next, true)
+}
+
+func (b *Backend) SaveConfigForNextConnection(next AppConfig) error {
+	return b.saveConfig(next, false)
+}
+
+func (b *Backend) saveConfig(next AppConfig, applyToConnection bool) error {
 	b.mu.Lock()
 	prev := cloneConfig(b.cfg)
 	wasRunning := b.state.Running
@@ -62,7 +70,7 @@ func (b *Backend) SaveConfig(next AppConfig) error {
 	// Apply may emit logs; do it outside b.mu to avoid self-deadlock via b.addLog.
 	b.pfMgr.Apply(portForwards)
 
-	if wasRunning && prev != nil && configChangeRequiresRestart(*prev, next) {
+	if applyToConnection && wasRunning && prev != nil && configChangeRequiresRestart(*prev, next) {
 		b.addLog("info", "app", "config changed; restarting proxy to apply runtime settings")
 		go func(withTun bool) {
 			_ = b.RestartProxy(StartRequest{WithTun: withTun})

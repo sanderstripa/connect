@@ -38,12 +38,19 @@ import UpdatesPanel from "./UpdatesPanel.vue";
 const appVersion = ref("…");
 const hoveredWindowControl = ref("");
 function resetWindowControls() { hoveredWindowControl.value = ""; }
+let closingToTray = false;
 async function hideToTray() {
-  resetWindowControls();
-  await flushSettings();
-  page.value = "home";
-  await nextTick();
-  await Window.Hide();
+  if (closingToTray) return;
+  closingToTray = true;
+  try {
+    resetWindowControls();
+    await flushSettings();
+    page.value = "home";
+    await nextTick();
+    await Window.Hide();
+  } finally {
+    closingToTray = false;
+  }
 }
 const openConnect = () => Browser.OpenURL("https://connect.sanderstripa.com/");
 const draft = ref<AppConfig>();
@@ -344,6 +351,11 @@ async function saveSettings() {
     c.routing.customRules = clean
       .map((s) => "DOMAIN-SUFFIX," + s + ",DIRECT")
       .join("\n");
+    if (closingToTray && running.value) {
+      await Call.ByName("main.App.SaveConfigForNextConnection", c);
+      await reload();
+      return;
+    }
     const reconnect =
       running.value &&
       (c.tun.enabled !== config.value?.tun.enabled ||
