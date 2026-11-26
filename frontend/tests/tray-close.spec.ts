@@ -24,6 +24,7 @@ test('closing to tray returns each section to home and keeps live VPN and pendin
   const close = () => page.getByRole('button',{name:'Скрыть в трей',exact:true}).click();
   const home = async () => {
     await expect(page.locator('main.page-home')).toBeVisible();
+    await expect(page.locator('main:not(.page-home)')).toHaveCount(0);
     await expect(page.getByText('Соединение активно')).toBeVisible();
   };
   await page.goto('/');

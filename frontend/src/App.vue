@@ -38,18 +38,19 @@ import UpdatesPanel from "./UpdatesPanel.vue";
 const appVersion = ref("…");
 const hoveredWindowControl = ref("");
 function resetWindowControls() { hoveredWindowControl.value = ""; }
-let closingToTray = false;
+const closingToTray = ref(false);
 async function hideToTray() {
-  if (closingToTray) return;
-  closingToTray = true;
+  if (closingToTray.value) return;
+  closingToTray.value = true;
   try {
     resetWindowControls();
     await flushSettings();
+    importing.value = false;
     page.value = "home";
     await nextTick();
     await Window.Hide();
   } finally {
-    closingToTray = false;
+    closingToTray.value = false;
   }
 }
 const openConnect = () => Browser.OpenURL("https://connect.sanderstripa.com/");
@@ -351,7 +352,7 @@ async function saveSettings() {
     c.routing.customRules = clean
       .map((s) => "DOMAIN-SUFFIX," + s + ",DIRECT")
       .join("\n");
-    if (closingToTray && running.value) {
+    if (closingToTray.value && running.value) {
       await Call.ByName("main.App.SaveConfigForNextConnection", c);
       await reload();
       return;
@@ -464,7 +465,7 @@ onBeforeUnmount(() => {
         </button>
       </nav>
       <div id="main-view" class="view-stack">
-       <Transition name="view">
+       <Transition name="view" :css="!closingToTray">
         <main :key="page" :class="'page-' + page">
       <template v-if="page === 'home'">
         <section class="connection">
