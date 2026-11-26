@@ -107,6 +107,56 @@ func TestInstallSurvivesRestartRollbackAndTamperDetection(t *testing.T) {
 		t.Fatal("bundled baseline modified")
 	}
 }
+func TestBundleUpgradeKeepsNewerSlotsAndManualRollback(t *testing.T) {
+	dir := t.TempDir()
+	bundled := Baseline{Version: "202611252204", Files: map[string]string{}}
+	oldFiles := map[string][]byte{}
+	for _, name := range requiredFiles("geo") {
+		file := filepath.Join(dir, name)
+		if err := os.WriteFile(file, bytes.Repeat([]byte("bundle "+name), 8), 0600); err != nil {
+			t.Fatal(err)
+		}
+		bundled.Files[name] = file
+		oldFiles[name] = bytes.Repeat([]byte("download "+name), 8)
+	}
+	m := New(t.TempDir(), map[string]Baseline{"geo": bundled})
+	old, err := m.store("geo", "202610250000", oldFiles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.save("geo", state{Current: old}); err != nil {
+		t.Fatal(err)
+	}
+
+	check := func(installed, previous string, useBundle bool) {
+		t.Helper()
+		status := m.Status("geo", false, false)
+		if status.Installed != installed || status.Previous != previous || status.Error != "" {
+			t.Fatalf("unexpected update status: %+v", status)
+		}
+		path, err := m.Resolve("geo", "geoip.dat", bundled.Files["geoip.dat"])
+		if err != nil || (path == bundled.Files["geoip.dat"]) != useBundle {
+			t.Fatalf("unexpected active path %q: %v", path, err)
+		}
+	}
+
+	check(bundled.Version, old.Version, true)
+	if _, err := m.Rollback("geo"); err != nil {
+		t.Fatal(err)
+	}
+	m = New(m.Root, m.Baselines)
+	check(old.Version, bundled.Version, false)
+
+	newer, err := m.store("geo", "202611260000", oldFiles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.save("geo", state{Current: newer}); err != nil {
+		t.Fatal(err)
+	}
+	check(newer.Version, "", false)
+}
+
 func TestChecksumFailureDoesNotChangeActiveSlot(t *testing.T) {
 	m, releases, files := fixture(t)
 	data := bytes.Repeat([]byte{1}, 64)

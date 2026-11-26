@@ -71,16 +71,17 @@ func (b *Backend) updateManagerLocked() (*updates.Manager, error) {
 }
 func (b *Backend) GetUpdateStatus(id string, check, preview bool) (updates.Component, error) {
 	b.mu.Lock()
-	if e := b.ensureCoreBinariesLocked(); e != nil {
-		b.mu.Unlock()
-		return updates.Component{}, e
-	}
-	m, e := b.updateManagerLocked()
+	runtimeErr := b.ensureCoreBinariesLocked()
+	m, err := b.updateManagerLocked()
 	b.mu.Unlock()
-	if e != nil {
-		return updates.Component{}, e
+	if err != nil {
+		return updates.Component{}, err
 	}
-	return m.Status(id, check, preview), nil
+	status := m.Status(id, check, preview)
+	if status.Installed == "" && status.Error == "" && runtimeErr != nil && (id == "sudoku" || id == "xray" || id == "amneziawg") {
+		status.Error = runtimeErr.Error()
+	}
+	return status, nil
 }
 func (b *Backend) UpdateComponent(id, version string) (updates.Result, error) {
 	b.mu.Lock()

@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +67,7 @@ type state struct {
 	Previous    *generation `json:"previous,omitempty"`
 	Older       *generation `json:"older,omitempty"`
 	AppRollback bool        `json:"appRollback,omitempty"`
+	Pinned      bool        `json:"pinned,omitempty"`
 }
 type asset struct {
 	Name   string `json:"name"`
@@ -355,12 +358,50 @@ func (m *Manager) validate(id string, g *generation) error {
 	}
 	return nil
 }
+
+var comparableVersion = regexp.MustCompile(`^v?([0-9]+(?:\.[0-9]+)*)(?:-([0-9]+))?(?:\+connect\.([0-9]+(?:\.[0-9]+)*))?$`)
+
+// Compare the version formats used by the stable component packages. Unknown
+// versions, including older hash-only baselines, cannot trigger a replacement.
+func newerVersion(candidate, installed string) bool {
+	a, b := comparableVersion.FindStringSubmatch(candidate), comparableVersion.FindStringSubmatch(installed)
+	if a == nil || b == nil {
+		return false
+	}
+	for i := 1; i < len(a); i++ {
+		parse := func(value string) []uint64 {
+			var numbers []uint64
+			for _, part := range strings.Split(value, ".") {
+				number, _ := strconv.ParseUint(part, 10, 64)
+				numbers = append(numbers, number)
+			}
+			return numbers
+		}
+		if order := slices.Compare(parse(a[i]), parse(b[i])); order != 0 {
+			return order > 0
+		}
+	}
+	return false
+}
+
+func (m *Manager) preferBundle(id string, s state) bool {
+	if id == "app" || s.Current == nil || s.Current.Disabled || s.Pinned {
+		return false
+	}
+	// An older selection with a newer previous slot is also a rollback in
+	// state files written before the explicit pinned flag was introduced.
+	if s.Previous != nil && newerVersion(s.Previous.Version, s.Current.Version) {
+		return false
+	}
+	return newerVersion(m.Baselines[id].Version, s.Current.Version)
+}
+
 func (m *Manager) Resolve(id, name, fallback string) (string, error) {
 	s, e := m.readState(id)
 	if e != nil {
 		return "", e
 	}
-	if s.Current == nil {
+	if s.Current == nil || m.preferBundle(id, s) {
 		return fallback, nil
 	}
 	if e = m.validate(id, s.Current); e != nil {
@@ -388,6 +429,10 @@ func (m *Manager) Status(id string, check, preview bool) Component {
 	s, e := m.readState(id)
 	if e != nil {
 		c.Error = e.Error()
+	} else if m.preferBundle(id, s) {
+		if m.validate(id, s.Current) == nil && (id != "sudoku" || m.compatibleSudoku(s.Current)) {
+			c.Previous = s.Current.Version
+		}
 	} else {
 		if s.Current != nil {
 			c.Installed = s.Current.Version
@@ -427,7 +472,7 @@ func (m *Manager) Status(id string, check, preview bool) Component {
 		c.Installed = m.Baselines[id].Version
 		c.Build = m.Baselines[id].Build
 	}
-	if id == "sudoku" && s.Previous != nil && !m.compatibleSudoku(s.Previous) {
+	if id == "sudoku" && s.Previous != nil && !m.preferBundle(id, s) && !m.compatibleSudoku(s.Previous) {
 		c.Previous = ""
 	}
 	if check {
@@ -657,12 +702,15 @@ func (m *Manager) Install(id, version string) (Result, error) {
 	if e != nil {
 		return Result{}, e
 	}
-	if s.Current != nil && s.Current.Slot == g.Slot {
+	if s.Current != nil && s.Current.Slot == g.Slot && !m.preferBundle(id, s) {
 		if id != "app" {
 			return Result{Version: version}, nil
 		}
 	}
 	previous := s.Current
+	if m.preferBundle(id, s) {
+		previous = nil
+	}
 	var older *generation
 	if id == "app" {
 		older = s.Previous
@@ -704,8 +752,21 @@ func (m *Manager) Rollback(id string) (Result, error) {
 			s.Previous = s.Older
 		}
 	}
+	if m.preferBundle(id, s) {
+		bundled, err := m.baseline(id)
+		if err != nil {
+			return Result{}, err
+		}
+		if bundled == nil || bundled.Disabled {
+			return Result{}, errors.New("bundled component is unavailable")
+		}
+		s.Current, s.Previous = bundled, s.Current
+	}
 	if s.Previous == nil {
 		return Result{}, errors.New("no previous installed version")
+	}
+	if id == "sudoku" && !m.compatibleSudoku(s.Previous) {
+		return Result{}, errors.New("previous Sudoku package lacks the required Connect adapters")
 	}
 	if e = m.validate(id, s.Previous); e != nil {
 		return Result{}, e
@@ -713,6 +774,8 @@ func (m *Manager) Rollback(id string) (Result, error) {
 	s.Current, s.Previous = s.Previous, s.Current
 	if id == "app" {
 		s.AppRollback = true
+	} else {
+		s.Pinned = s.Previous == nil || !newerVersion(s.Current.Version, s.Previous.Version)
 	}
 	if e = m.save(id, s); e != nil {
 		return Result{}, e
