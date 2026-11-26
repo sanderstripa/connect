@@ -27,6 +27,10 @@ func unusedSwitchPort(t *testing.T) int {
 	return p
 }
 
+// Newer Xray defaults to rejecting private destinations. These fixtures
+// listen on loopback and forward only to the local test HTTP servers.
+var loopbackFreedomRules = []map[string]any{{"action": "allow", "ip": []string{"127.0.0.1"}}}
+
 func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 	root, e := filepath.Abs("../../runtime/bin")
 	if e != nil {
@@ -41,6 +45,7 @@ func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 		t.Fatal(e)
 	}
 	ctx := context.Background()
+	t.Cleanup(func() { b.coreProc.Stop(time.Second); b.tunProc.Stop(time.Second) })
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "switch traffic OK") }))
 	defer target.Close()
 	b.preflightTarget = target.Listener.Addr().String()
@@ -64,7 +69,7 @@ func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 		t.Cleanup(func() { p.Stop(time.Second) })
 		return p
 	}
-	startServer("xray", map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": xp, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/switch"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom"}}})
+	startServer("xray", map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": xp, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/switch"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"finalRules": loopbackFreedomRules}}}})
 	startServer("sudoku", map[string]any{"mode": "server", "transport": "tcp", "local_port": sp, "key": key, "aead": "chacha20-poly1305", "padding_min": 5, "padding_max": 15, "ascii": "prefer_entropy", "enable_pure_downlink": true, "multiplex": "off", "httpmask": map[string]any{"disable": true, "mode": "legacy"}})
 	xn, e := ParseEngineLink("vless://" + uuid + "@127.0.0.1:" + fmtPort(xp) + "?type=xhttp&security=none&path=%2Fswitch")
 	if e != nil {
@@ -85,7 +90,6 @@ func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 	if e = b.startSwitchedCore(ctx, plan, 1); e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { b.coreProc.Stop(time.Second); b.tunProc.Stop(time.Second) })
 	exe, _ := os.Executable()
 	if e = b.tunProc.Start(exe, []string{"-test.run=^TestManagedProcessHelper$"}, []string{"SUDOKU_PROCESS_TEST=wait"}, "", nil); e != nil {
 		t.Fatal(e)
@@ -137,7 +141,7 @@ func TestSwitchKeepsTunAndRollsBackFailedCore(t *testing.T) {
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(503) }))
 	defer failing.Close()
 	badPort := unusedSwitchPort(t)
-	startServer("xray", map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": badPort, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/switch"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"redirect": failing.Listener.Addr().String()}}}})
+	startServer("xray", map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": badPort, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/switch"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"redirect": failing.Listener.Addr().String(), "finalRules": loopbackFreedomRules}}}})
 	badNode, e := ParseEngineLink("vless://" + uuid + "@127.0.0.1:" + fmtPort(badPort) + "?type=xhttp&security=none&path=%2Fswitch")
 	if e != nil {
 		t.Fatal(e)

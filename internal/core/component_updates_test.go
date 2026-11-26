@@ -83,7 +83,7 @@ func TestManagedXraySlotCarriesRealHTTPWithoutSystemProxy(t *testing.T) {
 	uuid := "00000000-0000-4000-8000-000000000001"
 	dir := t.TempDir()
 	file := filepath.Join(dir, "server.json")
-	cfg := map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": serverPort, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/managed"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom"}}}
+	cfg := map[string]any{"inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": serverPort, "protocol": "vless", "settings": map[string]any{"clients": []any{map[string]any{"id": uuid}}, "decryption": "none"}, "streamSettings": map[string]any{"network": "xhttp", "security": "none", "xhttpSettings": map[string]any{"path": "/managed"}}}}, "outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"finalRules": loopbackFreedomRules}}}}
 	raw, _ := json.Marshal(cfg)
 	os.WriteFile(file, raw, 0600)
 	server := NewManagedProcess("xray-server")
