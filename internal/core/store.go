@@ -164,11 +164,13 @@ func DefaultConfig(runtimeDir string) *AppConfig {
 		},
 		PortForwards: []PortForwardRule{},
 		UI: UISettings{
-			Language: "ru",
-			Theme:    "auto",
-			// launchAtLogin defaults to false and is only used by the desktop host app.
-			LaunchAtLogin: false,
+			Language:      "ru",
+			Theme:         "auto",
+			LaunchAtLogin: runtime.GOOS == "windows",
 		},
+	}
+	if runtime.GOOS == "windows" {
+		cfg.UI.Theme = "dark"
 	}
 	normalizeConfig(cfg, runtimeDir)
 	return cfg

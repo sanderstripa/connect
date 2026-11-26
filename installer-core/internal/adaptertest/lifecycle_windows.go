@@ -22,13 +22,31 @@ func Lifecycle(t *testing.T, id, executable string, newAdapter func() core.Adapt
 		t.Skip("real installation test requires an explicitly enabled disposable GitHub runner")
 	}
 	root := t.TempDir()
-	o := core.Options{Path: root, Desktop: true, StartMenu: true, Chrome: id == "connect", Language: "ru", Theme: "light"}
+	o := core.Options{Path: root, Desktop: true, StartMenu: true, Language: "ru", Theme: "light"}
 	a := newAdapter()
 	if err := a.Install(o); err != nil {
 		t.Fatalf("clean install: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, executable)); err != nil {
 		t.Fatal("application missing", err)
+	}
+	if id == "connect" {
+		if _, err := os.Stat(filepath.Join(root, "ChromeExtension")); !os.IsNotExist(err) {
+			t.Fatalf("clean install without Chrome opt-in: %v", err)
+		}
+		runKey, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE|registry.SET_VALUE)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer runKey.Close()
+		want := `"` + filepath.Join(root, "Connect.exe") + `" --autostart`
+		if got, _, err := runKey.GetStringValue("connect-app"); err != nil || got != want {
+			t.Fatalf("clean install autostart: got %q, want %q, error %v", got, want, err)
+		}
+		if err := runKey.DeleteValue("connect-app"); err != nil {
+			t.Fatal(err)
+		}
+
 	}
 	regRoot, key := registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\`+map[string]string{"connect": "ConnectApp", "screenshot": "Screenshot", "screencast": "Screencast", "torrent": "Torrent", "soulu": "Soulu"}[id]
 	if id == "connect" {
@@ -69,7 +87,7 @@ func Lifecycle(t *testing.T, id, executable string, newAdapter func() core.Adapt
 		}
 		payload := []byte("preserve existing profile\n")
 		if id == "connect" {
-			payload = []byte(`{"ui":{"language":"en","theme":"dark"}}`)
+			payload = []byte(`{"ui":{"language":"en","theme":"light","launchAtLogin":false}}`)
 		}
 		if id == "torrent" {
 			payload = []byte(filepath.Join(os.Getenv("USERPROFILE"), "Downloads") + "\n0 1 1\n")
@@ -143,10 +161,23 @@ func Lifecycle(t *testing.T, id, executable string, newAdapter func() core.Adapt
 	}
 	o.Language = "en"
 	o.Theme = "light"
+	o.Chrome = id == "connect"
 	if err = updater.Install(o); err != nil {
 		t.Fatalf("update: %v", err)
 	}
 	if id == "connect" {
+		if _, err := os.Stat(filepath.Join(root, "ChromeExtension", "manifest.json")); err != nil {
+			t.Fatalf("Chrome opt-in did not install the extension: %v", err)
+		}
+		runKey, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = runKey.GetStringValue("connect-app")
+		runKey.Close()
+		if err != registry.ErrNotExist {
+			t.Fatalf("upgrade changed the user's autostart selection: %v", err)
+		}
 		iconPath := filepath.Join(root, "Connect-"+products.Version("connect")+".ico")
 		if got, e := os.ReadFile(iconPath); e != nil || !bytes.Equal(got, products.VPNIconICO()) { t.Fatal("installed icon differs", e) }
 		if got := shortcutIcon(t, pinned); !strings.EqualFold(got, iconPath+",0") { t.Fatalf("pinned icon not updated: %q", got) }

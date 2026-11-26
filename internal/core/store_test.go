@@ -32,8 +32,12 @@ func TestDefaultConfigUsesCurrentPlatformTunDefaults(t *testing.T) {
 	cfg := DefaultConfig(t.TempDir())
 	want := defaultTunSettings(runtime.GOOS)
 
-	if cfg.UI.Theme != "auto" {
-		t.Fatalf("expected auto to be the default theme, got %q", cfg.UI.Theme)
+	wantTheme := "auto"
+	if runtime.GOOS == "windows" {
+		wantTheme = "dark"
+	}
+	if cfg.UI.Theme != wantTheme || cfg.UI.LaunchAtLogin != (runtime.GOOS == "windows") {
+		t.Fatalf("unexpected default appearance or launch at login: %+v", cfg.UI)
 	}
 	if cfg.Tun.Enabled != want.Enabled {
 		t.Fatalf("expected TUN default %v, got %v", want.Enabled, cfg.Tun.Enabled)

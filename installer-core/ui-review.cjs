@@ -19,6 +19,10 @@ try{
   let calls=[],cancel=false,fail=false;
   await page.route('**/api/**',async route=>{const action=route.request().url().split('/api/')[1];let body={ok:true};if(action==='folder')body=cancel?{path:'',cancelled:true}:{path:'C:\\Chosen folder\\'+config.name};if(action==='hotkey-current')body={vk:44,mod:0};if(action==='hotkey-save')body={relogin:true};if(action==='install'){calls.push(JSON.parse(route.request().postData()));if(fail)return route.fulfill({status:500,json:{error:'TEST disk error'}})}if(action==='progress')body={progress:35};return route.fulfill({status:200,json:body})});
   await page.goto(`http://127.0.0.1:${port}/${id}/`);await page.evaluate(()=>document.fonts.ready);assert.equal(await page.locator('#primary').textContent()!== '',true);
+  if(id==='vpn'){
+   assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+   assert.equal(await page.locator('#chrome').isChecked(),false);
+  }
   const font=await page.evaluate(()=>document.fonts.check('14px Montserrat')&&[...document.fonts].some(f=>f.family==='Montserrat'&&f.status==='loaded'));assert(font,'font not loaded');
   await page.locator('#settingsButton').click();await page.locator('#en').click();await page.locator('#dark').click();await page.locator('#path').fill('C:\\Manual path\\'+config.name);cancel=true;await page.locator('#browse').click();await page.waitForTimeout(50);assert.equal(await page.locator('#path').inputValue(),'C:\\Manual path\\'+config.name);cancel=false;await page.locator('#browse').click();await page.waitForTimeout(50);assert.equal(await page.locator('#path').inputValue(),'C:\\Chosen folder\\'+config.name);
   await page.locator('#desktop').uncheck();await page.locator('#startMenu').uncheck();fail=true;await page.locator('#accept').click();await page.locator('#failure').waitFor({state:'visible'});assert.equal(calls.length,1);assert.equal(calls[0].language,'en');assert.equal(calls[0].theme,'dark');assert.equal(calls[0].desktop,false);assert.equal(calls[0].path,'C:\\Chosen folder\\'+config.name);assert.equal(await page.locator('#finish').isVisible(),false);

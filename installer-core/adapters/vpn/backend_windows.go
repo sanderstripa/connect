@@ -170,7 +170,11 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		return err
 	}
 	s.progress.Store(45)
-	if chrome {
+	_, existingChrome := os.Stat(filepath.Join(dir, "ChromeExtension", "manifest.json"))
+	if existingChrome != nil && !os.IsNotExist(existingChrome) {
+		return existingChrome
+	}
+	if chrome || existingChrome == nil {
 		if err = installChrome(dir); err != nil {
 			return err
 		}
@@ -239,6 +243,9 @@ func (s *setup) install(desktop bool, chrome bool, startMenu bool, destination s
 		if err = writeAtomic(filepath.Join(dir, installprefs.File), preferenceData); err != nil {
 			return err
 		}
+		if err = enableAutostart(dir); err != nil {
+			return err
+		}
 	} else if err = os.Remove(filepath.Join(dir, installprefs.File)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -297,8 +304,16 @@ func (s *setup) remove() error {
 	s.progress.Store(100)
 	return nil
 }
+func enableAutostart(dir string) error {
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer key.Close()
+	return key.SetStringValue("connect-app", `"`+filepath.Join(dir, "Connect.exe")+`" --autostart`)
+}
+
 func cleanupAutostart() error {
-	// A clean install may be removed before first launch creates any startup entry.
 	// Missing entries are already clean; genuine registry/task failures still stop removal.
 	return powershell(`$ErrorActionPreference='Stop';
 $id=[Security.Principal.WindowsIdentity]::GetCurrent();
