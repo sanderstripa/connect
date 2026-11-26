@@ -20,5 +20,8 @@ test('updates show installed versions, preview releases, per-component updates a
  await page.getByRole('button',{name:'Проверить всё',exact:true}).click();await expect(page.getByRole('article',{name:'GeoIP / GeoSite'}).getByRole('combobox')).toContainText('20261017');await expect(page.getByRole('article',{name:'Приложение',exact:true}).getByRole('button',{name:/Откат/})).toBeEnabled();
  if(process.env.SUDOKU_PREVIEW_DIR){await page.screenshot({path:path.join(process.env.SUDOKU_PREVIEW_DIR,'updates-light.png')});await page.locator('html').evaluate(e=>e.setAttribute('data-theme','dark'));await expect(page.locator('.update-actions button').first()).toHaveCSS('background-color','rgb(230, 231, 233)');await page.screenshot({path:path.join(process.env.SUDOKU_PREVIEW_DIR,'updates-dark.png')});}
  expect(calls.some(c=>c.method==='UpdateComponent'&&c.id==='xray')).toBe(true);expect(calls.some(c=>c.method==='RollbackComponent'&&c.id==='xray')).toBe(true);
- await page.getByRole('button',{name:'Назад',exact:true}).click();await page.getByRole('button',{name:'EN',exact:true}).click();await page.getByRole('button',{name:'Updates',exact:true}).click();await expect(page.getByRole('heading',{name:'UPDATES',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ const checked = calls.filter(c => c.check).length;
+ await page.getByRole('button',{name:'Назад',exact:true}).click();await page.getByRole('button',{name:'EN',exact:true}).click();await page.getByRole('button',{name:'Updates',exact:true}).click();await expect(page.getByRole('heading',{name:'UPDATES',exact:true})).toBeVisible();await expect(page.getByRole('article',{name:'Xray'}).getByRole('combobox')).toContainText('v26.8.1');
+ expect(calls.filter(c => c.check)).toHaveLength(checked);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

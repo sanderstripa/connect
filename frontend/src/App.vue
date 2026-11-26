@@ -454,7 +454,6 @@ onBeforeUnmount(() => {
       <div id="main-view" class="view-stack">
        <Transition name="view">
         <main :key="page" :class="'page-' + page">
-      <UpdatesPanel v-show="page === 'updates'" :active="page === 'updates'" :language="language" :running="running" />
       <template v-if="page === 'home'">
         <section class="connection">
           <div class="status">
@@ -528,6 +527,7 @@ onBeforeUnmount(() => {
             }}
           </h1>
         </div>
+        <UpdatesPanel v-if="page === 'updates'" :language="language" :running="running" />
         <template v-if="page === 'settings' && draft">
           <section class="settings-section settings-appearance">
             <div class="appearance-heading"><h2><Palette :size="17" /> {{ tr("ВНЕШНИЙ ВИД") }} </h2>

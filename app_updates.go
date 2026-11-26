@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/SUDOKU-ASCII/sudoku-desktop/internal/updates"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"time"
 )
 
 func (a *App) GetUpdateStatus(id string, check, preview bool) (updates.Component, error) {
@@ -30,8 +32,8 @@ func (a *App) finishUpdate(result updates.Result, err error) (updates.Result, er
 	}
 	// The network helper stages files only. The UI owns the installer handoff.
 	if result.Installer != "" && application.Get() != nil {
-		if err = a.StopProxy(); err != nil {
-			return result, err
+		if a.GetState().Running {
+			return result, fmt.Errorf("Disconnect VPN before updating the application")
 		}
 		if err = launchUpdateInstaller(result.Installer); err != nil {
 			return result, err

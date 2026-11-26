@@ -1,14 +1,20 @@
-<script setup lang="ts">
-import {computed,ref,watch} from 'vue';
-import {Call} from '@wailsio/runtime';
+<script lang="ts">
+import { ref } from 'vue';
+
 type Release={version:string;prerelease:boolean;published:string};
 type Component={id:string;installed:string;build?:string;previous:string;releases:Release[];error:string;source:string};
-const props=defineProps<{language:string;running:boolean;active:boolean}>();
+const items=ref<Record<string,Component>>({}),selected=ref<Record<string,string>>({}),working=ref(''),notice=ref(''),problem=ref('');
+const previews=ref(localStorage.getItem('connect-update-preview')==='true');
+const catalogLifetime = 60_000;
+const checkedAt: Record<string, number> = {};
+</script>
+<script setup lang="ts">
+import { computed, onMounted } from 'vue';
+import { Call } from '@wailsio/runtime';
+const props=defineProps<{language:string;running:boolean}>();
 const en=computed(()=>props.language==='en');
 const text=(ru:string,eng:string)=>en.value?eng:ru;
 const ids=['app','xray','geo','sudoku','amneziawg'];
-const items=ref<Record<string,Component>>({}),selected=ref<Record<string,string>>({}),working=ref(''),notice=ref(''),problem=ref('');
-const previews=ref(localStorage.getItem('connect-update-preview')==='true');
 const name=(id:string)=>({app:text('Приложение','Application'),xray:'Xray',geo:'GeoIP / GeoSite',sudoku:'Sudoku',amneziawg:'AmneziaWG'}[id]||id);
 const sameVersion=(id:string)=>!!selected.value[id]&&selected.value[id].replace(/^v/,'')===items.value[id]?.installed.replace(/^v/,'');
 const call=(method:string,...args:unknown[])=>Call.ByName('main.App.'+method,...args);
@@ -17,8 +23,6 @@ const latestMatches = (id: string) => {
   const latest = item?.releases?.[0];
   return latest && latest.version.replace(/^v/, '') === item.installed.replace(/^v/, '');
 };
-const catalogLifetime = 60_000;
-const checkedAt: Record<string, number> = {};
 async function status(id: string, check: boolean) {
   const item = await call('GetUpdateStatus', id, check, previews.value) as Component;
   items.value[id] = item;
@@ -62,7 +66,7 @@ async function rollback(id:string){
  const version=items.value[id]?.previous;if(!version)return;
  await perform(id,async()=>{await call('RollbackComponent',id);if(id==='app'){notice.value=text('Запуск установщика…','Launching setup…');return}delete checkedAt[id];await checkStatus(id);notice.value=text('Предыдущая версия восстановлена. Переподключите VPN.','Previous version restored. Reconnect VPN.')});
 }
-watch(() => props.active, active => { if (active) void checkAll(false); }, { immediate: true });
+onMounted(() => void checkAll(false));
 </script>
 <template>
  <section class="updates-panel">
