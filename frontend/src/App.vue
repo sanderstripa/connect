@@ -219,12 +219,11 @@ async function toggle() {
   });
 }
 const canInstallChrome = /Windows/i.test(navigator.userAgent);
+const chromeSetupPrepared = ref(false);
 async function prepareChromeExtension() {
   await action(async () => {
     await Call.ByName("main.App.PrepareChromeExtension");
-    message.value = language.value === "en"
-      ? 'Enable Developer mode, select “Load unpacked” and paste the copied folder path. If already installed from this folder, click Reload.'
-      : 'Включите режим разработчика, нажмите «Загрузить распакованное расширение» и вставьте скопированный путь. Если расширение уже загружено из этой папки, нажмите «Обновить».';
+    chromeSetupPrepared.value = true;
   });
 }
 async function importLink() {
@@ -606,12 +605,17 @@ onBeforeUnmount(() => {
             </fieldset>
           </section>
           <p v-if="running" class="hint reconnect-hint"> {{ tr("Настройки подключения применятся с переподключением.") }} </p>
-          <section v-if="canInstallChrome" class="settings-section settings-links">
+          <section v-if="canInstallChrome" class="settings-section">
             <button class="text-row" :disabled="busy" @click="prepareChromeExtension">
               <Chrome :size="16" />
               {{ language === 'en' ? 'Install Chrome extension' : 'Установить расширение для Chrome' }}
               <ChevronRight :size="15" />
             </button>
+            <p v-if="chromeSetupPrepared" class="hint" role="status">
+              {{ language === 'en'
+                ? 'In Chrome, enable Developer mode, select “Load unpacked” and paste the copied folder path. If already installed from this folder, click Reload.'
+                : 'В Chrome включите режим разработчика, нажмите «Загрузить распакованное расширение» и вставьте скопированный путь. Если расширение уже загружено из этой папки, нажмите «Обновить».' }}
+            </p>
           </section>
           <section class="settings-section about-connect">
             <h2>{{ language === 'en' ? 'About Connect VPN' : 'О Connect VPN' }}</h2>

@@ -343,3 +343,39 @@ test('settings language persists immediately without discarding unsaved routing'
  await page.reload();await page.getByRole('button',{name:'Settings',exact:true}).click();await expect(page.getByRole('button',{name:'EN',exact:true})).toHaveAttribute('aria-pressed','true');await assertFits(page);
  await page.getByRole('button',{name:'RU',exact:true}).click();await expect(page.getByRole('heading',{name:'НАСТРОЙКИ',exact:true})).toHaveCount(0);await expect.poll(()=>cfg.ui.language).toBe('ru');
 });
+
+
+test("Windows settings offer guided Chrome installation without saving settings", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgent", { value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" });
+  });
+  const calls: string[] = [];
+  const config = {
+    activeNodeId: "", nodes: [],
+    routing: { proxyMode: "global", ruleUrls: [], customRules: "" },
+    tun: { enabled: true }, core: { autoStart: false },
+    ui: { theme: "dark", language: "ru", launchAtLogin: true },
+  };
+  await page.route("**/wails/runtime", async (route) => {
+    const request = route.request().postDataJSON();
+    let result: unknown = null;
+    if (request.object === 0) {
+      const method = request.args.methodName || ids[request.args.methodID];
+      calls.push(method);
+      if (method === "GetConfig") result = config;
+      if (method === "GetState") result = { running: true, coreRunning: true };
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(result) });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Настройки", exact: true }).click();
+  const button = page.getByRole("button", { name: "Установить расширение для Chrome" });
+  await expect(button).toBeVisible();
+  await expect(button.locator("xpath=../following-sibling::section[1]")).toContainText("О Connect VPN");
+  const previousCalls = calls.length;
+  await button.click();
+  await expect(page.getByText(/включите режим разработчика/)).toBeVisible();
+  expect(calls.filter((method) => method === "main.App.PrepareChromeExtension")).toHaveLength(1);
+  expect(calls.slice(previousCalls)).not.toContain("SaveConfig");
+  expect(calls.slice(previousCalls)).not.toContain("StopProxy");
+});
