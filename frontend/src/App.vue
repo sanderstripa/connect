@@ -47,6 +47,7 @@ async function hideToTray() {
     resetWindowControls();
     await flushSettings();
     importing.value = false;
+    browserHandoff.value = false;
     page.value = "home";
     await nextTick();
     await Window.Hide();
@@ -60,9 +61,13 @@ const config = ref<AppConfig>(),
   state = ref<RuntimeState>();
 const page = ref<"home" | "settings" | "servers" | "logs" | "updates">("home");
 const removeTrayHide = Events.On("main:hide-to-tray", hideToTray);
+const browserHandoff = ref(false);
 const removeNavigation = Events.On("main:navigate", async (event) => {
   await reload();
-  if (event.data === "settings") openSettings();
+  if (event.data === "browser-handoff") {
+    page.value = "home";
+    browserHandoff.value = true;
+  } else if (event.data === "settings") openSettings();
   else page.value = event.data === "servers" ? "servers" : "home";
 });
 const importing = ref(false),
@@ -214,7 +219,22 @@ async function reload() {
 async function toggle() {
   await action(async () => {
     if (running.value) await api.stopProxy();
-    else await api.startProxy({ withTun: true });
+    else {
+      try {
+        await api.startProxy({ withTun: true });
+      } catch (e) {
+        if (!errorMessage(e).includes("CONNECT_BROWSER_VPN_ACTIVE")) throw e;
+        browserHandoff.value = true;
+        return;
+      }
+    }
+    await reload();
+  });
+}
+async function confirmBrowserHandoff() {
+  browserHandoff.value = false;
+  await action(async () => {
+    await Call.ByName("main.App.StartProxyWithBrowserHandoff", { withTun: true });
     await reload();
   });
 }
@@ -486,7 +506,9 @@ onBeforeUnmount(() => {
                   ? tr("Соединение активно")
                   : running
                     ? tr("Проверка соединения")
-                    : tr("Вы отключены")
+                    : state?.browserVPNRunning
+                      ? (language === 'en' ? 'VPN is active in Chrome' : 'VPN работает в браузере')
+                      : tr("Вы отключены")
             }}
           </div>
           <button
@@ -707,6 +729,22 @@ onBeforeUnmount(() => {
       </div>
     </template>
     <div v-if="message" class="toast" role="status">{{ tr(message) }}</div>
+    <div v-if="browserHandoff" class="modal-backdrop" @click.self="browserHandoff = false">
+      <section class="import-modal" role="dialog" aria-modal="true" aria-labelledby="handoff-title"
+        @keydown.esc.prevent="browserHandoff = false">
+        <p id="handoff-title">
+          {{ language === 'en' ? 'VPN is already running in Chrome. Switch to VPN for the whole system?' : 'VPN уже работает в браузере. Переключиться на VPN для всей системы?' }}
+        </p>
+        <div class="settings-links">
+          <button class="text-row" @click="browserHandoff = false">
+            {{ language === 'en' ? 'Keep as is' : 'Оставить как есть' }}
+          </button>
+          <button class="primary" @click="confirmBrowserHandoff">
+            {{ language === 'en' ? 'Switch' : 'Переключиться' }}
+          </button>
+        </div>
+      </section>
+    </div>
     <div
       v-if="importing"
       class="modal-backdrop"

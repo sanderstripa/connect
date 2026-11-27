@@ -195,6 +195,7 @@ export interface LANProxyInfo {
 }
 
 export interface RuntimeState {
+  browserVPNRunning?: boolean
   running: boolean
   coreRunning: boolean
   tunRunning: boolean

@@ -26,7 +26,10 @@ async function refresh() {
 async function action(fn: () => Promise<unknown>) {
   busy.value = true; error.value = '';
   try { await fn(); await refresh(); }
-  catch(e) { error.value = String(e); }
+  catch(e) {
+    if (String(e).includes('CONNECT_BROWSER_VPN_ACTIVE')) open('browser-handoff');
+    else error.value = String(e);
+  }
   finally { busy.value = false; }
 }
 function open(page: string) { Events.Emit('tray:open', page); }

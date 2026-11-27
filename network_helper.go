@@ -48,7 +48,7 @@ func (c *networkClient) call(method string, args []any, result any) error {
 var networkMethods = map[string]bool{
 	"GetUpdateStatus": true, "UpdateComponent": true, "RollbackComponent": true,
 	"GetConfig": true, "SaveConfig": true, "SaveConfigForNextConnection": true, "SetRoutingMode": true, "GetState": true,
-	"StartProxy": true, "StopProxy": true, "RestartProxy": true, "UpsertNode": true,
+	"StartProxy": true, "StartProxyWithBrowserHandoff": true, "StopProxy": true, "RestartProxy": true, "UpsertNode": true,
 	"DeleteNode": true, "SetActiveNode": true, "SwitchNode": true, "ImportShortLink": true,
 	"ExportShortLink": true, "ProbeNode": true, "ProbeAllNodes": true, "AutoSelectLowestLatency": true,
 	"SortNodesByName": true, "SortNodesByLatency": true, "DetectIPDirect": true, "DetectIPProxy": true,

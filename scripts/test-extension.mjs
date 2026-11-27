@@ -2,30 +2,31 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-function harness({failedConnect=false,failedNode='',delay=0,cold=false,savedDesired=false}={}){
- const storage={initialized:!cold,desired:savedDesired},local={desired:true,preferences:{theme:'dark'}},changes=[],commands=[],listeners={};
+function harness({failedConnect=false,failedNode='',delay=0,cold=false,savedDesired=false,desktopRunning=false,failProxyClear=false}={}){
+ const storage={initialized:!cold,desired:savedDesired},local={desired:true,preferences:{theme:'dark'}},changes=[],commands=[],requests=[],listeners={};
  let connected=false,activeNodeId='one',nodes=[{id:'one',name:'Xray',protocol:'xray'},{id:'two',name:'Sudoku',protocol:'sudoku'}];
  const windows=[{id:1,type:'normal'}];
  const chrome={windows:{async getAll(){return [...windows]},onRemoved:{addListener(fn){listeners.removed=fn}},onCreated:{addListener(fn){listeners.created=fn}}},runtime:{id:'connect-test',lastError:null,connectNative(){
   const p={disconnect(){p.closed=true;connected=false;p.drop?.()},onMessage:{addListener(fn){p.receive=fn}},onDisconnect:{addListener(fn){p.drop=fn}},postMessage(m){
-   commands.push(m.action);
+   commands.push(m.action);requests.push(m);
    setTimeout(()=>{
     if(p.closed)return;
+    if(m.action==='handoff-ack'){if(!m.handoffError)connected=false;return;}
     if(m.action==='select')activeNodeId=m.nodeId;
     if(m.action==='disconnect')connected=false;
     if(m.action==='delete'){nodes=nodes.filter(n=>n.id!==m.nodeId);if(activeNodeId===m.nodeId)activeNodeId=nodes[0]?.id||'';}
     const failed=m.action==='connect'&&(failedConnect||activeNodeId===failedNode);
-    if(m.action==='connect')connected=!failed;
-    p.receive({id:m.id,ok:!failed,error:failed?'offline':'',connected,activeNodeId,port:17991,nodes});
+    if(m.action==='connect'){connected=!failed;if(connected&&m.confirmed)desktopRunning=false;}
+    p.receive({id:m.id,ok:!failed,error:failed?'offline':'',connected,activeNodeId,port:17991,nodes,desktopRunning});
    },delay);
   }};listeners.port=p;return p;
  },onMessage:{addListener(fn){listeners.message=fn}},onInstalled:{addListener(){}},onStartup:{addListener(fn){listeners.startup=fn}}},
  storage:{session:{async get(k){return typeof k==='string'?{[k]:storage[k]}:storage},async set(v){Object.assign(storage,v)}},local:{async get(k){return typeof k==='string'?{[k]:local[k]}:local},async set(v){Object.assign(local,v);if(v.view)storage.view=v.view},async remove(keys){for(const k of keys)delete local[k]}}},
- action:{setBadgeText(){},async setPopup(){},async openPopup(){},onClicked:{addListener(fn){listeners.click=fn}}},contextMenus:{onClicked:{addListener(fn){listeners.menu=fn}},removeAll(fn){fn()},create(){}},proxy:{settings:{async get(){return {levelOfControl:'controllable_by_this_extension'}},async set(v){changes.push(['proxy',v])},async clear(v){changes.push(['clear',v])}},onProxyError:{addListener(fn){listeners.proxyError=fn}}},
+ action:{setBadgeText(){},async setPopup(){},async openPopup(){},onClicked:{addListener(fn){listeners.click=fn}}},contextMenus:{onClicked:{addListener(fn){listeners.menu=fn}},removeAll(fn){fn()},create(){}},proxy:{settings:{async get(){return {levelOfControl:'controllable_by_this_extension'}},async set(v){changes.push(['proxy',v])},async clear(v){if(failProxyClear)throw Error('clear failed');changes.push(['clear',v])}},onProxyError:{addListener(fn){listeners.proxyError=fn}}},
  privacy:{network:{webRTCIPHandlingPolicy:{async set(v){changes.push(['webrtc',v])},async clear(v){changes.push(['rtcClear',v])}}}},
  alarms:{onAlarm:{addListener(fn){listeners.alarm=fn}},create(){}}};
  vm.runInContext(fs.readFileSync(new URL('../extension/background.js',import.meta.url),'utf8'),vm.createContext({chrome,setTimeout,clearTimeout,console,URL}));
- return {storage,local,windows,changes,commands,listeners,send:m=>new Promise(resolve=>listeners.message(typeof m==='string'?{action:m}:m,{id:chrome.runtime.id},resolve))};
+ return {storage,local,windows,changes,commands,requests,listeners,send:m=>new Promise(resolve=>listeners.message(typeof m==='string'?{action:m}:m,{id:chrome.runtime.id},resolve))};
 }
 
 test('connect scopes proxy to Chrome and disconnect releases both settings',async()=>{
@@ -96,3 +97,56 @@ test('routing persists domains and applies exact and subdomain bypass while conn
  await h.send({action:'routing',domains:''});assert.equal(h.changes.filter(c=>c[0]==='proxy').at(-1)[1].value.rules.bypassList.length,3);
 });
 test('deleting default removes stale preference',async()=>{const h=harness();await h.send({action:'default',nodeId:'two'});await h.send({action:'delete',nodeId:'two'});assert.equal(h.local.defaultNodeId,undefined);});
+
+test('desktop remains in control until the Chrome handoff is explicitly confirmed',async()=>{
+ const h=harness({desktopRunning:true});
+ let response=await h.send('toggle');
+ assert.equal(response.confirmDesktop,true);
+ assert.equal(response.desktopRunning,true);
+ assert.equal(h.storage.desired,false);
+ assert.deepEqual(h.commands,['status']);
+ assert.deepEqual(h.changes,[]);
+ response=await h.send('cancel-handoff');
+ assert.equal(response.confirmDesktop,false);
+ assert.equal(response.desktopRunning,true);
+ await h.send({action:'activate',nodeId:'two'});
+ response=await h.send('confirm-handoff');
+ assert.equal(response.connected,true);
+ assert.equal(response.desktopRunning,false);
+ assert.equal(response.activeNodeId,'two');
+ assert.equal(h.requests.at(-1).confirmed,true);
+});
+
+test('failed Chrome handoff retains the fail-closed browser proxy',async()=>{
+ const h=harness({desktopRunning:true,failedConnect:true});
+ await h.send('toggle');
+ const response=await h.send('confirm-handoff');
+ assert.equal(response.ok,false);
+ assert.equal(response.desktopRunning,true);
+ assert.equal(h.storage.desired,true);
+ assert.ok(!h.changes.some(([change])=>change==='clear'));
+});
+
+test('desktop handoff clears browser settings before acknowledging it',async()=>{
+ const h=harness();
+ await h.send('connect');
+ h.listeners.port.receive({event:'release-browser',handoffId:42,activeNodeId:'one'});
+ await settle();
+ assert.deepEqual(h.changes.slice(-2).map(([name])=>name),['rtcClear','clear']);
+ assert.equal(h.storage.view.desired,false);
+ assert.equal(h.storage.view.connected,false);
+ assert.equal(h.storage.view.desktopRunning,true);
+ assert.equal(h.requests.at(-1).handoffId,42);
+ assert.equal(h.requests.at(-1).handoffError,'');
+});
+
+test('failed browser proxy release leaves Chrome fail-closed and reports the error',async()=>{
+ const h=harness({failProxyClear:true});
+ await h.send('connect');
+ h.listeners.port.receive({event:'release-browser',handoffId:43,activeNodeId:'one'});
+ await settle();
+ assert.equal(h.storage.desired,true);
+ assert.equal(h.storage.view.error,'clear failed');
+ assert.equal(h.requests.at(-1).handoffId,43);
+ assert.equal(h.requests.at(-1).handoffError,'clear failed');
+});

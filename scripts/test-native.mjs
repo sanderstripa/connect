@@ -8,11 +8,61 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));const targetPort=server.add
 const reserve=net.createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));
 const uuid='00000000-0000-4000-8000-000000000001';const config={log:{loglevel:'warning'},inbounds:[{listen:'127.0.0.1',port,protocol:'vless',settings:{clients:[{id:uuid}],decryption:'none'},streamSettings:{network:'xhttp',security:'none',xhttpSettings:{path:'/connect-integration',mode:'auto'}}}],outbounds:[{protocol:'freedom',settings:{finalRules:[{action:'allow',ip:['127.0.0.1']}]}}]};
 const configFile=path.join(scratch,'server.json');fs.writeFileSync(configFile,JSON.stringify(config));const upstream=spawn(xray,['run','-config',configFile],{windowsHide:true,stdio:['ignore','ignore','pipe']});let serverError='';upstream.stderr.on('data',b=>serverError+=b);
-const id=fs.readFileSync(path.join(root,'extension-id.txt'),'utf8').trim();let native=spawn(exe,['chrome-extension://'+id+'/'],{windowsHide:true,env:{...process.env,APPDATA:scratch,LOCALAPPDATA:path.join(scratch,'local')},stdio:['pipe','pipe','pipe']});let startupError='',nativeError='';native.stderr.on('data',b=>nativeError+=b);let buffer=Buffer.alloc(0),sequence=0;const pending=new Map();
-function attachNative(){native.stdout.on('data',b=>{buffer=Buffer.concat([buffer,b]);while(buffer.length>=4){const length=buffer.readUInt32LE();assert.ok(length<1024*1024,'stdout is valid native messaging');if(buffer.length<length+4)break;const m=JSON.parse(buffer.subarray(4,length+4));buffer=buffer.subarray(length+4);if(!m.id&&m.error){startupError=m.error;for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error(startupError))}pending.clear();}const p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.ok?p.resolve(m):p.reject(Error(m.error))}}});}attachNative();
+const id=fs.readFileSync(path.join(root,'extension-id.txt'),'utf8').trim();let native=spawn(exe,['chrome-extension://'+id+'/'],{windowsHide:true,env:{...process.env,APPDATA:scratch,LOCALAPPDATA:path.join(scratch,'local')},stdio:['pipe','pipe','pipe']});let startupError='',nativeError='',handoffEvent;native.stderr.on('data',b=>nativeError+=b);let buffer=Buffer.alloc(0),sequence=0;const pending=new Map();
+function attachNative(){native.stdout.on('data',b=>{buffer=Buffer.concat([buffer,b]);while(buffer.length>=4){const length=buffer.readUInt32LE();assert.ok(length<1024*1024,'stdout is valid native messaging');if(buffer.length<length+4)break;const m=JSON.parse(buffer.subarray(4,length+4));buffer=buffer.subarray(length+4);if(m.event==='release-browser'){handoffEvent=m;const ack=Buffer.from(JSON.stringify({action:'handoff-ack',handoffId:m.handoffId}));const header=Buffer.alloc(4);header.writeUInt32LE(ack.length);native.stdin.write(Buffer.concat([header,ack]));}if(!m.id&&m.error){startupError=m.error;for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error(startupError))}pending.clear();}const p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.ok?p.resolve(m):p.reject(Error(m.error))}}});}attachNative();
 function request(action,data={}){if(startupError)return Promise.reject(Error(startupError));return new Promise((resolve,reject)=>{const id=++sequence;const b=Buffer.from(JSON.stringify({id,action,...data})),header=Buffer.alloc(4);header.writeUInt32LE(b.length);const timer=setTimeout(()=>reject(Error('native timeout '+action+' '+nativeError+' '+serverError)),40000);pending.set(id,{resolve,reject,timer});native.stdin.write(Buffer.concat([header,b]));});}
 async function socksRequest(){const socket=net.connect(17991,'127.0.0.1');socket.setTimeout(15000,()=>socket.destroy(Error('SOCKS timeout')));await new Promise((r,j)=>{socket.once('connect',r);socket.once('error',j)});let buf=Buffer.alloc(0);const wait=n=>new Promise((resolve,reject)=>{function data(b){buf=Buffer.concat([buf,b]);if(buf.length>=n){cleanup();const out=buf.subarray(0,n);buf=buf.subarray(n);resolve(out)}}function cleanup(){socket.off('data',data);socket.off('error',reject)}socket.on('data',data);socket.once('error',reject);if(buf.length>=n)data(Buffer.alloc(0))});socket.write(Buffer.from([5,1,0]));assert.deepEqual(await wait(2),Buffer.from([5,0]));const req=Buffer.from([5,1,0,1,127,0,0,1,targetPort>>8,targetPort&255]);socket.write(req);const reply=await wait(10);assert.equal(reply[1],0);socket.write('GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n');const body=await new Promise((r,j)=>{let s=buf.toString();socket.on('data',b=>s+=b);socket.once('end',()=>r(s));socket.once('error',j)});assert.match(body,/Connect xhttp integration OK/);socket.destroy();}
 try{await new Promise(r=>setTimeout(r,500));const empty=await request('status');assert.equal(empty.connected,false);assert.equal(empty.nodes.length,0);await request('import',{name:'Local Xray xhttp',link:'vless://'+uuid+'@127.0.0.1:'+port+'?type=xhttp&security=none&path=%2Fconnect-integration&mode=auto'});await assert.rejects(request('connect',{probeURL:'http://127.0.0.1:'+targetPort+'/fail'}),/HTTP 503/);assert.equal((await request('status')).connected,false);const connected=await request('connect',{probeURL:'http://127.0.0.1:'+targetPort+'/health'});assert.equal(connected.connected,true);assert.ok(!JSON.stringify(connected).includes(uuid),'native responses omit secrets');await socksRequest();await request('disconnect');assert.equal((await request('status')).connected,false);
+const sid=execFileSync('whoami.exe',['/user','/fo','csv','/nh'],{windowsHide:true,encoding:'utf8'}).match(/S-1-(?:\d+-)*\d+/)[0];
+const pipe='\\\\.\\pipe\\connect-vpn-'+sid+'-';
+let desktopRunning=true;
+const desktopCommands=[];
+const desktop=net.createServer(socket=>{
+ let input='';
+ socket.on('data',chunk=>{
+  input+=chunk;
+  if(!input.endsWith('\n'))return;
+  const command=JSON.parse(input);
+  desktopCommands.push(command);
+  if(command==='release')desktopRunning=false;
+  if(command==='restore')desktopRunning=true;
+  socket.end(JSON.stringify({running:desktopRunning})+'\n');
+ });
+});
+function callBrowserPeer(command){
+ return new Promise((resolve,reject)=>{
+  const peer=net.connect(pipe+'browser');
+  let output='';
+  peer.setTimeout(20000,()=>peer.destroy(Error('browser handoff pipe timed out')));
+  peer.once('error',reject);
+  peer.once('connect',()=>peer.write(JSON.stringify(command)+'\n'));
+  peer.on('data',data=>output+=data);
+  peer.once('end',()=>{try{resolve(JSON.parse(output))}catch(e){reject(e)}});
+ });
+}
+await new Promise((resolve,reject)=>{desktop.once('error',reject);desktop.listen(pipe+'desktop',resolve);});
+try{
+ assert.equal((await request('status')).desktopRunning,true);
+ await assert.rejects(request('connect'),/CONNECT_DESKTOP_VPN_ACTIVE/);
+ assert.equal(desktopRunning,true);
+ assert.ok(!desktopCommands.includes('release'));
+ await assert.rejects(request('connect',{confirmed:true,probeURL:'http://127.0.0.1:'+targetPort+'/fail'}),/HTTP 503/);
+ assert.equal(desktopRunning,true,'a failed candidate must preserve the desktop route');
+ const transferred=await request('connect',{confirmed:true,probeURL:'http://127.0.0.1:'+targetPort+'/health'});
+ assert.equal(transferred.connected,true);
+ assert.equal(transferred.desktopRunning,false);
+ assert.ok(desktopCommands.includes('release'));
+ await socksRequest();
+ const denied=await callBrowserPeer('release');
+ assert.match(denied.error,/VPN/);
+ assert.equal((await request('status')).connected,true);
+ desktopRunning=true;
+ const released=await callBrowserPeer('release');
+ assert.equal(released.error,undefined);
+ assert.ok(handoffEvent?.handoffId,'browser was notified to release its proxy before the core stopped');
+ assert.equal((await request('status')).connected,false);
+}finally{await new Promise(resolve=>desktop.close(resolve));}
+
 const reservation=net.createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));const sudokuPort=reservation.address().port;await new Promise(r=>reservation.close(r));const sudokuKey='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';const sudokuConfig={mode:'server',transport:'tcp',local_port:sudokuPort,key:sudokuKey,aead:'chacha20-poly1305',padding_min:5,padding_max:15,ascii:'prefer_entropy',enable_pure_downlink:true,multiplex:'off',httpmask:{disable:true,mode:'legacy'}};const sudokuFile=path.join(scratch,'sudoku-server.json');fs.writeFileSync(sudokuFile,JSON.stringify(sudokuConfig));sudokuProcess=spawn(path.join(root,'runtime/bin/windows-amd64/sudoku.exe'),['-c',sudokuFile],{windowsHide:true,stdio:['ignore','ignore','pipe']});sudokuProcess.stderr.on('data',b=>serverError+=b);await new Promise(r=>setTimeout(r,300));const sudokuLink='sudoku://'+Buffer.from(JSON.stringify({h:'127.0.0.1',p:sudokuPort,k:sudokuKey,m:1080,hd:true})).toString('base64url');await request('connect',{probeURL:'http://127.0.0.1:'+targetPort+'/health'});const imported=await request('import',{name:'Local Sudoku',link:sudokuLink});const node=imported.nodes.find(n=>n.name==='Local Sudoku');await request('select',{nodeId:node.id});await request('connect',{probeURL:'http://127.0.0.1:'+targetPort+'/health'});await socksRequest();await request('disconnect');
 
 async function waitExit(proc){if(proc.exitCode!==null)return;await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('native host did not exit')),10000);proc.once('exit',()=>{clearTimeout(timer);resolve()})});}

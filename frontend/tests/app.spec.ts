@@ -379,3 +379,49 @@ test("Windows settings offer guided Chrome installation without saving settings"
   expect(calls.slice(previousCalls)).not.toContain("SaveConfig");
   expect(calls.slice(previousCalls)).not.toContain("StopProxy");
 });
+
+test("desktop asks before taking over from Chrome VPN", async ({ page }) => {
+  const calls: string[] = [];
+  const config = {
+    activeNodeId: "one", nodes: [{ id: "one", name: "Local VPN", protocol: "xray" }],
+    routing: { proxyMode: "global", ruleUrls: [], customRules: "" },
+    tun: { enabled: true }, core: { autoStart: false },
+    ui: { theme: "dark", language: "ru", launchAtLogin: true },
+  };
+  let running = false;
+  await page.route("**/wails/runtime", async (route) => {
+    const request = route.request().postDataJSON();
+    let result: unknown = null;
+    if (request.object === 0) {
+      const method = request.args.methodName || ids[request.args.methodID];
+      calls.push(method);
+      if (method === "StartProxy") {
+        await route.fulfill({ status: 500, body: "CONNECT_BROWSER_VPN_ACTIVE" });
+        return;
+      }
+      if (method === "main.App.StartProxyWithBrowserHandoff") running = true;
+      if (method === "GetConfig") result = config;
+      if (method === "GetState") result = {
+        running, browserVPNRunning: !running, coreRunning: running, tunRunning: running,
+        traffic: { recentBandwidth: [] },
+      };
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(result) });
+  });
+
+  await page.goto("/");
+  await expect(page.getByText("VPN работает в браузере", { exact: true })).toBeVisible();
+  const toggle = page.locator(".power-button");
+  await toggle.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("VPN уже работает в браузере. Переключиться на VPN для всей системы?");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Оставить как есть" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(calls).not.toContain("main.App.StartProxyWithBrowserHandoff");
+
+  await toggle.click();
+  await dialog.getByRole("button", { name: "Переключиться" }).click();
+  await expect(page.getByText("Соединение активно", { exact: true })).toBeVisible();
+  expect(calls.filter((method) => method === "main.App.StartProxyWithBrowserHandoff")).toHaveLength(1);
+});

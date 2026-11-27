@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ type App struct {
 	backend      *core.Backend
 	remote       *networkClient
 	shutdownOnce sync.Once
+	vpnListener  io.Closer
 	ready        chan struct{}
 
 	runtimeFS   fs.FS
@@ -61,7 +63,12 @@ func (a *App) ServiceStartup(ctx context.Context, _ application.ServiceOptions) 
 				app.Event.Emit(name, payload)
 			}
 		})
-		a.backend.Startup(ctx)
+		listener, err := a.serveDesktopVPN()
+		if err != nil {
+			return err
+		}
+		a.vpnListener = listener
+		a.backend.StartupWithConnect(ctx, a.StartProxy)
 	}
 	return nil
 }
@@ -73,6 +80,9 @@ func (a *App) ServiceShutdown() error {
 
 func (a *App) shutdownBackend() {
 	a.shutdownOnce.Do(func() {
+		if a.vpnListener != nil {
+			defer a.vpnListener.Close()
+		}
 		if a.remote != nil {
 			_ = a.remote.call("Shutdown", nil, nil)
 			_ = a.remote.client.Close()
@@ -183,7 +193,9 @@ func (a *App) GetState() core.RuntimeState {
 	if a.backend == nil {
 		return core.RuntimeState{}
 	}
-	return a.backend.GetState()
+	state := a.backend.GetState()
+	state.BrowserVPNRunning, _ = a.BrowserVPNActive()
+	return state
 }
 
 func (a *App) StartProxy(req core.StartRequest) error {
@@ -194,7 +206,7 @@ func (a *App) StartProxy(req core.StartRequest) error {
 	if a.backend == nil {
 		return nil
 	}
-	return a.backend.StartProxy(req)
+	return a.startDesktopVPN(req, false)
 }
 
 func (a *App) StopProxy() error {

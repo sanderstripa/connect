@@ -18,8 +18,8 @@ type HTTPMaskSettings struct {
 }
 
 type NodeConfig struct {
-	Protocol string `json:"protocol,omitempty"`
-	EngineConfig string `json:"engineConfig,omitempty"`
+	Protocol           string           `json:"protocol,omitempty"`
+	EngineConfig       string           `json:"engineConfig,omitempty"`
 	SourceURL          string           `json:"sourceUrl,omitempty"`
 	ID                 string           `json:"id"`
 	Name               string           `json:"name"`
@@ -205,21 +205,22 @@ type LANProxyInfo struct {
 }
 
 type RuntimeState struct {
-	Running         bool               `json:"running"`
-	CoreRunning     bool               `json:"coreRunning"`
-	TunRunning      bool               `json:"tunRunning"`
-	ReverseRunning  bool               `json:"reverseRunning"`
-	StartedAtUnix   int64              `json:"startedAtUnix"`
-	ActiveNodeID    string             `json:"activeNodeId"`
-	ActiveNodeName  string             `json:"activeNodeName"`
-	LastError       string             `json:"lastError"`
-	Traffic         TrafficState       `json:"traffic"`
-	Kernel          KernelState        `json:"kernel"`
-	Latencies       []LatencyResult    `json:"latencies"`
-	Connections     []ActiveConnection `json:"connections"`
-	RecentLogs      []LogEntry         `json:"recentLogs"`
-	NeedsAdmin      bool               `json:"needsAdmin"`
-	RouteSetupError string             `json:"routeSetupError"`
+	BrowserVPNRunning bool               `json:"browserVPNRunning,omitempty"`
+	Running           bool               `json:"running"`
+	CoreRunning       bool               `json:"coreRunning"`
+	TunRunning        bool               `json:"tunRunning"`
+	ReverseRunning    bool               `json:"reverseRunning"`
+	StartedAtUnix     int64              `json:"startedAtUnix"`
+	ActiveNodeID      string             `json:"activeNodeId"`
+	ActiveNodeName    string             `json:"activeNodeName"`
+	LastError         string             `json:"lastError"`
+	Traffic           TrafficState       `json:"traffic"`
+	Kernel            KernelState        `json:"kernel"`
+	Latencies         []LatencyResult    `json:"latencies"`
+	Connections       []ActiveConnection `json:"connections"`
+	RecentLogs        []LogEntry         `json:"recentLogs"`
+	NeedsAdmin        bool               `json:"needsAdmin"`
+	RouteSetupError   string             `json:"routeSetupError"`
 }
 
 type StartRequest struct {

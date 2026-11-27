@@ -12,7 +12,13 @@ function render(){
  $('routing-label').textContent=lang==='en'?'Sites bypassing VPN · one domain per line':'Сайты мимо VPN · по одному домену в строке';
  $('routing-hint').textContent=lang==='en'?'Subdomains also connect directly. Applies only to Chrome.':'Поддомены тоже идут напрямую. Исключения действуют только в Chrome.';
  $('routing-save').textContent=lang==='en'?'Save routing':'Сохранить маршрутизацию';$('file-label').textContent=lang==='en'?'Open .conf':'Открыть .conf';document.documentElement.lang=lang;document.documentElement.dataset.theme=light?'light':'dark';$('language').textContent=lang.toUpperCase();$('language').setAttribute('aria-label',t.language);$('theme').setAttribute('aria-label',t.theme);$('theme').setAttribute('aria-checked',String(light));$('editor-title').textContent=t.title;$('back').setAttribute('aria-label',t.back);$('link-label').textContent=t.link;$('name-label').textContent=t.name;$('name').placeholder=t.server;$('link').placeholder=t.placeholder;$('footer').textContent=t.footer;$('release').textContent=t.disconnect;$('add').replaceChildren();const plus=document.createElement('span');plus.textContent='+';plus.setAttribute('aria-hidden','true');$('add').append(plus,document.createTextNode(t.add));detect();
+ $('handoff').hidden=!state.confirmDesktop;
+ $('handoff-message').textContent=lang==='en'?'VPN is already on in Connect. Switch to VPN for Chrome only?':'VPN уже включён в приложении Connect. Переключиться на VPN только для браузера?';
+ $('keep-vpn').textContent=lang==='en'?'Keep as is':'Оставить как есть';
+ $('switch-vpn').textContent=lang==='en'?'Switch':'Переключиться';
  const busy=localBusy||state.busy,profiles=$('profiles');profiles.replaceChildren();
+ $('keep-vpn').disabled=!!busy;$('switch-vpn').disabled=!!busy;
+
  for(const n of state.nodes||[]){
   const checked=!busy&&!!state.connected&&n.id===state.activeNodeId;
   const row=document.createElement('div');row.className='profile';
@@ -29,7 +35,7 @@ function render(){
  $('connections').classList.toggle('empty',!state.nodes?.length);
  $('connections').hidden=editing;$('editor').hidden=!editing;
  $('status').hidden=!state.nodes?.length;
- $('status').textContent=busy?({disconnect:t.disconnecting,import:t.adding,delete:t.deleting}[localAction||state.operation]||t.connecting):state.connected?t.connected+' · '+label(state.nodes?.find(n=>n.id===state.activeNodeId)?.protocol):state.desired?t.blocked:t.off;
+ $('status').textContent=busy?({disconnect:t.disconnecting,import:t.adding,delete:t.deleting}[localAction||state.operation]||t.connecting):state.connected?t.connected+' · '+label(state.nodes?.find(n=>n.id===state.activeNodeId)?.protocol):state.desired?t.blocked:state.desktopRunning?(lang==='en'?'System VPN is active':'Работает системный VPN'):t.off;
  $('routing-save').disabled=!!busy;$('domains').disabled=!!busy;$('add').disabled=!!busy;$('back').disabled=!!busy;$('save').disabled=!!busy;$('link').disabled=!!busy;$('name').disabled=!!busy;
  $('save').textContent=busy?t.adding:t.add;
  const error=localError||state.error||'';$('error').textContent=lang==='en'?(errors[error]||error):error;$('error').hidden=!error;
@@ -43,6 +49,8 @@ $('language').onclick=()=>{lang=lang==='ru'?'en':'ru';chrome.storage.local.set({
 $('theme').onclick=()=>{light=!light;chrome.storage.local.set({preferences:{lang,light}});render()};
 $('add').onclick=()=>{editing=true;localError='';state.error='';render();$('link').focus()};
 $('back').onclick=()=>{editing=false;render()};
+$('keep-vpn').onclick=()=>act('cancel-handoff');
+$('switch-vpn').onclick=()=>act('confirm-handoff');
 $('release').onclick=()=>act('disconnect');
 $('link').oninput=detect;
 $('import').onsubmit=async e=>{e.preventDefault();const link=$('link').value.trim();if(!link)return;const result=await act('import',{link,name:$('name').value.trim()});if(result?.ok){$('link').value='';$('name').value='';editing=false;render()}};

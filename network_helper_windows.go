@@ -91,7 +91,12 @@ func runNetworkHelper() bool {
 	if service.backend == nil {
 		return true
 	}
-	service.backend.Startup(context.Background())
+	vpnListener, err := service.serveDesktopVPN()
+	if err != nil {
+		return true
+	}
+	service.vpnListener = vpnListener
+	service.backend.StartupWithConnect(context.Background(), service.StartProxy)
 	defer service.ShutdownNow()
 	var once sync.Once
 	stop := func() { once.Do(func() { _ = listener.Close() }) }

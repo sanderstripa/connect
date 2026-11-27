@@ -295,7 +295,7 @@ func main() {
 	tray.OnRightClick(showTray)
 	app.Event.On("tray:open", func(event *application.CustomEvent) {
 		page, _ := event.Data.(string)
-		if page != "settings" && page != "servers" {
+		if page != "settings" && page != "servers" && page != "browser-handoff" {
 			page = "home"
 		}
 		application.InvokeAsync(func() {

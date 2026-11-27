@@ -308,7 +308,11 @@ func migrateStoreIfNeeded(oldStoreName, newStoreName string) error {
 	return nil
 }
 
-func (b *Backend) Startup(_ context.Context) {
+func (b *Backend) Startup(ctx context.Context) {
+	b.StartupWithConnect(ctx, b.StartProxy)
+}
+
+func (b *Backend) StartupWithConnect(_ context.Context, connect func(StartRequest) error) {
 	var windowsRecoveryErr error
 	if runtime.GOOS == "windows" && !b.browserOnly {
 		windowsRecoveryErr = b.recoverWindowsRouteCheckpoint()
@@ -338,7 +342,7 @@ func (b *Backend) Startup(_ context.Context) {
 	}
 	if autoStart {
 		go func() {
-			_ = b.StartProxy(StartRequest{WithTun: withTun})
+			_ = connect(StartRequest{WithTun: withTun})
 		}()
 	}
 }
