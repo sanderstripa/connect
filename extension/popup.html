@@ -1,18 +1,19 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect</title><link rel="stylesheet" href="style.css"></head>
 <body class="popup settings">
-<header><span class="wordmark">CONNECT.</span><div class="tools"><button id="language" aria-label="Язык интерфейса">RU</button><button id="theme" class="toggle" role="switch" aria-checked="true" aria-label="Светлая тема"><span></span></button></div></header>
-<main>
-<section id="connections" aria-label="Соединения">
-<h1 id="settings-title">Настройки соединений</h1>
-<div id="profiles" class="profiles"></div>
-<section id="handoff" hidden aria-labelledby="handoff-message">
+<section id="handoff" hidden role="dialog" aria-labelledby="handoff-message">
 <p id="handoff-message"></p>
 <div class="handoff-actions">
 <button id="keep-vpn" type="button"></button>
 <button id="switch-vpn" class="primary" type="button"></button>
 </div>
+<p id="handoff-error" role="alert" hidden></p>
 </section>
+<header><span class="wordmark">CONNECT.</span><div class="tools"><button id="language" aria-label="Язык интерфейса">RU</button><button id="theme" class="toggle" role="switch" aria-checked="true" aria-label="Светлая тема"><span></span></button></div></header>
+<main>
+<section id="connections" aria-label="Соединения">
+<h1 id="settings-title">Настройки соединений</h1>
+<div id="profiles" class="profiles"></div>
 <p id="status" role="status" class="muted" hidden></p>
 <button id="add" class="add"><span aria-hidden="true">+</span> Добавить</button>
 <form id="routing-form" class="routing">

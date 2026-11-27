@@ -10,8 +10,8 @@ if(m.event==='desktop-status'){snapshot.desktopRunning=m.desktopRunning;publish(
 Object.assign(snapshot,m);if(m.event==='stopped'){snapshot.connected=false;if(snapshot.busy)return;chrome.storage.session.get('desired').then(({desired})=>publish(desired?'Соединение прервано. Трафик заблокирован до переподключения.':''));return;}const p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.ok?p.resolve(m):p.reject(new Error(m.error||'Не удалось выполнить действие'));}});port.onDisconnect.addListener(()=>{if(port!==current)return;const detail=chrome.runtime.lastError?.message;if(port===current)port=null;for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error(detail||'Помощник недоступен. Установите Connect с компонентом Chrome.'));}pending.clear();snapshot.connected=false;snapshot.desktopRunning=false;chrome.storage.session.get('desired').then(({desired})=>publish(desired?'Связь с помощником потеряна.':''));});}return new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Сервер не ответил. Проверьте настройки.'));},110000);pending.set(id,{resolve,reject,timer});port.postMessage({id,action,...data});});}
 async function setProxy(){const settings=await chrome.proxy.settings.get({incognito:false});if(!['controllable_by_this_extension','controlled_by_this_extension'].includes(settings.levelOfControl))throw new Error('Настройки прокси заняты другим расширением или политикой Chrome.');const {bypassDomains=[]}=await chrome.storage.local.get('bypassDomains');await chrome.proxy.settings.set({scope:'regular',value:{mode:'fixed_servers',rules:{singleProxy:{scheme:'socks5',host:'127.0.0.1',port:17991},bypassList:['localhost','127.0.0.1','[::1]',...bypassDomains.flatMap(d=>[d,'*.'+d])]}}});await chrome.privacy.network.webRTCIPHandlingPolicy.set({scope:'regular',value:'disable_non_proxied_udp'});}
 async function disconnect(){await chrome.storage.session.set({desired:false,desiredNodeId:''});await chrome.proxy.settings.clear({scope:'regular'});await chrome.privacy.network.webRTCIPHandlingPolicy.clear({scope:'regular'});await request('disconnect');snapshot.connected=false;}
-async function openSettingsPopup(){
- try{await chrome.action.setPopup({popup:'popup.html'});await chrome.action.openPopup();}
+async function openPopup(popup='popup.html'){
+ try{await chrome.action.setPopup({popup});await chrome.action.openPopup();}
  finally{await chrome.action.setPopup({popup:''});}
 }
 async function releaseToDesktop(current,message){
@@ -153,11 +153,11 @@ function normalizeDomains(input){
  return result;
 }
 function enqueue(message){queue=queue.catch(()=>{}).then(()=>dispatch(message));return queue;}
-chrome.action.onClicked.addListener(()=>enqueue({action:'toggle'}).then(result=>{if(result.confirmDesktop)return openSettingsPopup();}).catch(console.error));
+chrome.action.onClicked.addListener(()=>enqueue({action:'toggle'}).then(result=>{if(result.confirmDesktop)return openPopup('popup.html#handoff');}).catch(console.error));
 chrome.contextMenus.onClicked.addListener(info=>{
  if(info.menuItemId!=='connect-settings')return;
  // Set a popup only while opening settings, so ordinary left clicks keep toggling.
- openSettingsPopup().catch(async e=>{console.error(e);await publish('Не удалось открыть настройки. Повторите правый клик.');});
+ openPopup().catch(async e=>{console.error(e);await publish('Не удалось открыть настройки. Повторите правый клик.');});
 });
 chrome.runtime.onInstalled.addListener(()=>{
  chrome.contextMenus.removeAll(()=>chrome.contextMenus.create({id:'connect-settings',title:'Настройки / Settings',contexts:['action']}));

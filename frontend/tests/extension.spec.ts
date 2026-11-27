@@ -1,15 +1,16 @@
 import {test,expect,type Page} from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-async function setup(page:Page,{empty=false,failed=false}={}){
+async function setup(page:Page,{empty=false,failed=false,handoff=false}={}){
  const root=path.resolve('../extension');
  await page.route('**/chrome-preview/**',async route=>{
   const name=new URL(route.request().url()).pathname.replace('/chrome-preview/','');const file=path.resolve(root,name);
   if(!file.startsWith(root+path.sep))return route.fulfill({status:403});
   const type=name.endsWith('.css')?'text/css':name.endsWith('.js')?'text/javascript':name.endsWith('.ttf')?'font/ttf':name.endsWith('.png')?'image/png':'text/html';await route.fulfill({contentType:type,body:await fs.readFile(file)});
  });
- await page.addInitScript(({empty,failed})=>{
-  const state:any={ok:true,connected:false,desired:false,busy:false,activeNodeId:'s',nodes:empty?[]:[{id:'x',name:'Amsterdam-Chrome',protocol:'xray'},{id:'s',name:'203.0.113.20',protocol:'sudoku'},{id:'m',name:'Мой AmneziaWG',protocol:'amneziawg'}]};
+ await page.addInitScript(({empty,failed,handoff})=>{
+  const state:any={ok:true,connected:false,desired:false,busy:false,activeNodeId:'s',confirmDesktop:handoff,nodes:empty?[]:[{id:'x',name:'Amsterdam-Chrome',protocol:'xray'},{id:'s',name:'203.0.113.20',protocol:'sudoku'},{id:'m',name:'Мой AmneziaWG',protocol:'amneziawg'}]};
+  if(handoff)window.close=()=>{};
   const listeners:any[]=[];(window as any).calls=[];
   (window as any).chrome={runtime:{async sendMessage(m:any){
    (window as any).calls.push(m);
@@ -22,10 +23,11 @@ async function setup(page:Page,{empty=false,failed=false}={}){
     const p=m.link.startsWith('[Interface]')?'amneziawg':m.link.startsWith('sudoku://')?'sudoku':m.link.startsWith('vless://')?'xray':'';
     if(!p){state.ok=false;state.error='Некорректная ссылка';}else state.nodes.push({id:'new-'+state.nodes.length,name:m.name||(p==='sudoku'?'203.0.113.20':'Мой '+p),protocol:p});
    }
+   if(m.action==='cancel-handoff')state.confirmDesktop=false;
    const copy=JSON.parse(JSON.stringify(state));for(const fn of listeners)fn({view:{newValue:copy}},'local');return copy;
   },openOptionsPage(){throw Error('Unexpected settings tab');}},storage:{local:{async get(){return {preferences:JSON.parse(localStorage.getItem('preferences')||'null')};},async set(v:any){localStorage.setItem('preferences',JSON.stringify(v.preferences));}},onChanged:{addListener(fn:any){listeners.push(fn);}}}};
- },{empty,failed});
- await page.setViewportSize({width:360,height:580});await page.goto('/chrome-preview/popup.html');await page.evaluate(()=>document.fonts.ready);
+ },{empty,failed,handoff});
+ await page.setViewportSize({width:360,height:580});await page.goto('/chrome-preview/popup.html'+(handoff?'#handoff':''));await page.evaluate(()=>document.fonts.ready);
 }
 async function assertFits(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('body').evaluate(e=>e.getBoundingClientRect().height)).toBeLessThanOrEqual(580);}
 
@@ -74,4 +76,15 @@ test('AmneziaWG file import detects protocol and creates an inline toggle',async
  await page.locator('#config-file').setInputFiles({name:'AWG-test.conf',mimeType:'text/plain',buffer:Buffer.from('[Interface]\nAddress = 10.8.0.2/32\n[Peer]\nEndpoint = example.test:51820')});
  await expect(page.locator('#detected')).toContainText('AmneziaWG');await expect(page.locator('#name')).toHaveValue('AWG-test');await page.locator('#save').click();
  await expect(page.locator('#profiles')).toContainText('AmneziaWG');await page.getByRole('switch',{name:/AmneziaWG — AWG-test/}).click();await expect(page.getByRole('switch',{name:/AmneziaWG — AWG-test/})).toHaveAttribute('aria-checked','true');await assertFits(page);
+});
+test('toolbar handoff displays only a compact confirmation',async({page})=>{
+ await setup(page,{handoff:true});
+ const dialog=page.getByRole('dialog');
+ await expect(dialog).toContainText('Переключиться на VPN только для браузера?');
+ await expect(dialog.getByRole('button')).toHaveCount(2);
+ for(const selector of ['header','main','footer'])await expect(page.locator(selector)).toBeHidden();
+ expect(await page.locator('body').evaluate(e=>e.scrollHeight)).toBeLessThan(160);
+ await expect(dialog.getByRole('button',{name:'Переключиться'})).toBeEnabled();
+ await dialog.getByRole('button',{name:'Оставить как есть'}).click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).calls.some((m:any)=>m.action==='cancel-handoff'))).toBe(true);
 });
