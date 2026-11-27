@@ -735,7 +735,7 @@ onBeforeUnmount(() => {
         <p id="handoff-title">
           {{ language === 'en' ? 'VPN is already running in Chrome. Switch to VPN for the whole system?' : 'VPN уже работает в браузере. Переключиться на VPN для всей системы?' }}
         </p>
-        <div class="settings-links">
+        <div class="handoff-actions">
           <button class="text-row" @click="browserHandoff = false">
             {{ language === 'en' ? 'Keep as is' : 'Оставить как есть' }}
           </button>
@@ -798,3 +798,20 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+
+<style scoped>
+.handoff-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+.handoff-actions > button {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  justify-content: center;
+}
+</style>
